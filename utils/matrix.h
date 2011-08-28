@@ -94,7 +94,7 @@ namespace core
 	}
 	template <typename T, size_t W, size_t H> matrix_base<T,W,H>& matrix_base<T,W,H>::operator *= (const matrix_base<T,W,W>& other)
 	{
-		matrix<T,W,H> temp;
+		matrix_base<T,W,H> temp;
 		for (int i=0;i<H;++i)
 		{
 			for (int j=0;j<W;++j)
@@ -179,10 +179,11 @@ namespace core
 	// specializations 
 	template<typename T> class matrix<T,2,2> : public matrix_base<T,2,2>
 	{
+        typedef matrix_base<T,2,2> matrix_base;
 	public:
 		// constructors and factory methods
 		// vector():vector_base(){}
-		matrix(const matrix_base<T,2,2>& other):matrix_base(other){}
+		matrix(const matrix_base& other):matrix_base(other){}
 		matrix(const T* data):matrix_base(data){}
 		matrix(const T& m00 = T(), const T& m10 = T(), const T& m01 = T(), const T& m11 = T())
 		{
@@ -198,10 +199,11 @@ namespace core
 	// specializations 
 	template<typename T> class matrix<T,3,3> : public matrix_base<T,3,3>
 	{
+        typedef matrix_base<T,3,3> matrix_base;
 	public:
 		// constructors and factory methods
 		// vector():vector_base(){}
-		matrix(const matrix_base<T,3,3>& other):matrix_base(other){}
+		matrix(const matrix_base& other):matrix_base(other){}
 		matrix(const T* data):matrix_base(data){}
 		matrix(const T& m00 = T(), const T& m10 = T(), const T& m20 = T(), const T& m01 = T(), const T& m11 = T(), const T& m21 = T(),
 			   const T& m02 = T(), const T& m12 = T(), const T& m22 = T())
@@ -221,10 +223,11 @@ namespace core
 		// specializations 
 	template<typename T> class matrix<T,4,4> : public matrix_base<T,4,4>
 	{
+        typedef matrix_base<T,4,4> matrix_base;
 	public:
 		// constructors and factory methods
 		// vector():vector_base(){}
-		matrix(const matrix_base<T,4,4>& other):matrix_base(other){}
+		matrix(const matrix_base& other):matrix_base(other){}
 		matrix(const T* data):matrix_base(data){}
 		matrix(const T& m00 = T(), const T& m10 = T(), const T& m20 = T(), const T& m30 = T(), 
 			   const T& m01 = T(), const T& m11 = T(), const T& m21 = T(), const T& m31 = T(),

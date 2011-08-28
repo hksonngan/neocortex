@@ -114,15 +114,15 @@ namespace core
 		return operator += (-other);
 	}
 
-	template <typename T> quaternion<T>& quaternion<T>::operator *=( const quaternion<T>& other )
+	template <typename T> quaternion<T>& quaternion<T>::operator *=( const quaternion<T>& q2 )
 	{
 		quaternion<T> temp;
-		temp.qx() = q1.qy()*q2.qz() - q1.qz()*q2.qy() + q2.qw()*q1.qx() + q1.qw()*q2.qx();
-		temp.qy() = q1.qz()*q2.qx() - q1.qx()*q2.qz() + q2.qw()*q1.qy() + q1.qw()*q2.qy();
-		temp.qz() = q1.qx()*q2.qy() - q2.qx()*q1.qy() + q2.qw()*q1.qz() + q1.qw()*q2.qz();
-		temp.qw() = q1.qw()*q2.qw() - q1.qx()*q2.qx() - q1.qy()*q2.qy() - q1.qz()*q2.qz();
+		temp.qx() = qy()*q2.qz() - qz()*q2.qy() + q2.qw()*qx() + qw()*q2.qx();
+		temp.qy() = qz()*q2.qx() - qx()*q2.qz() + q2.qw()*qy() + qw()*q2.qy();
+		temp.qz() = qx()*q2.qy() - q2.qx()*qy() + q2.qw()*qz() + qw()*q2.qz();
+		temp.qw() = qw()*q2.qw() - qx()*q2.qx() - qy()*q2.qy() - qz()*q2.qz();
 
-		*this = res;
+		*this = temp;
 		return *this;
 	}
 
