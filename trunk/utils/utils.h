@@ -21,7 +21,7 @@ namespace core
 	inline vector4 vector_to_vector( const vector3& v ) { return vector4(v.x(), v.y(), v.z(), REAL(0)); }
 
 	/// Initialize RNG
-	inline void    rand_init() {srand(time(0));}
+	inline void    rand_init() {srand((unsigned)time(0));}
 
 	/// Generate random float value within [0,1] range
 	inline REAL    rand_float() { return (REAL)rand()/RAND_MAX; }

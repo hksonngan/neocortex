@@ -145,10 +145,11 @@ namespace core
 	// specializations 
 	template<typename T> class vector<T,1> : public vector_base<T,1>
 	{
+        typedef vector_base<T,1> vector_base;
 	public:
 		// constructors and factory methods
 		// vector():vector_base(){}
-		vector(const vector_base<T,1>& other):vector_base(other){}
+		vector(const vector_base& other):vector_base(other){}
 		vector(const T* data):vector_base(data){}
 		vector(const T& xx = T()){x() = xx;}
 
@@ -161,10 +162,11 @@ namespace core
 
 	template<typename T> class vector<T,2> : public vector_base<T,2>
 	{
+        typedef vector_base<T,2> vector_base;
 	public:
 		// constructors and factory methods
 		// vector():vector_base(){}
-		vector(const vector_base<T,2>& other):vector_base(other){}
+		vector(const vector_base& other):vector_base(other){}
 		vector(const T* data):vector_base(data){}
 		vector(const T& xx = T(), const T& yy = T()){x() = xx; y() = yy;}
 
@@ -179,10 +181,11 @@ namespace core
 
 	template<typename T> class vector<T,3> : public vector_base<T,3>
 	{
+        typedef vector_base<T,3> vector_base;
 	public:
 		// constructors and factory methods
 		// vector():vector_base(){}
-		vector(const vector_base<T,3>& other):vector_base(other){}
+		vector(const vector_base& other):vector_base(other){}
 		vector(const T* data):vector_base(data){}
 		vector(const T& xx = T(), const T& yy = T(), const T& zz = T()){x() = xx; y() = yy; z() = zz;}
 
@@ -199,10 +202,11 @@ namespace core
 
 	template<typename T> class vector<T,4> : public vector_base<T,4>
 	{
+        typedef vector_base<T,4> vector_base;
 	public:
 		// constructors and factory methods
 		// vector():vector_base(){}
-		vector(const vector_base<T,4>& other):vector_base(other){}
+		vector(const vector_base& other):vector_base(other){}
 		vector(const T* data):vector_base(data){}
 		vector(const T& xx = T(), const T& yy = T(), const T& zz = T(), const T& ww = T()){x() = xx; y() = yy; z() = zz; w() = ww;}
 

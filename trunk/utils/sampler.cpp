@@ -52,7 +52,7 @@ namespace core
 
 	void sampler::map_samples_to_unit_disk()
 	{
-		UINT numSamples = _samples.size();
+		UINT numSamples = (UINT)_samples.size();
 		_diskSamples.reserve(numSamples);
 
 		for (UINT i = 0; i < numSamples;++i)
@@ -95,7 +95,7 @@ namespace core
 
 	void sampler::map_samples_to_unit_hemisphere( const REAL& e )
 	{
-		UINT numSamples = _samples.size();
+		UINT numSamples = (UINT)_samples.size();
 		_hemisphereSamples.reserve(numSamples);
 
 		for (UINT i = 0; i < numSamples;++i)

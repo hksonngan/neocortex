@@ -7,6 +7,7 @@
 #include "matrix.h"
 #include "vector.h"
 #include "quaternion.h"
+#include "bbox.h"
 
 namespace core
 {
