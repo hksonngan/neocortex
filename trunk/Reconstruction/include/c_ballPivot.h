@@ -31,7 +31,7 @@ class ballPivot
 	GLfloat razm_x, razm_y, razm_z;
 	int COUNT_OF_POINTS_X, COUNT_OF_POINTS_Y, COUNT_OF_POINTS_Z;
 	int COUNT_OF_ALL_POINTS, COUNT_OF_ALL_SHOWED_POINTS;
-	int STEP;
+	int STEP_X, STEP_Y, STEP_Z;
 	int radius;
 	c_point camera_pos;
 	float angle;
@@ -102,8 +102,9 @@ class ballPivot
 	void init_data(char * file);
 
 public:
-	ballPivot(char *file);
-	ballPivot(ScanData *InputData);
+	ballPivot(char *file);									// чтение исходных данных из bin-файла
+	ballPivot(ScanData *InputData);							// из сохранённого набора данных
+	ballPivot(TVoxelsData *VoxelsData, int SegmentIndex);	// из 3D-сегмента	
 	~ballPivot();
 	void buildMesh();
 	void renderMesh();
@@ -111,9 +112,9 @@ public:
 
 void ballPivot::DrawTriangle(int &p1, int &p2, int &p3)
 {
-	int HalfCountX=data_size.x/(2*STEP);
-	int HalfCountY=data_size.y/(2*STEP);
-	int HalfCountZ=data_size.z/(2*STEP);
+	int HalfCountX=data_size.x/(2*STEP_X);
+	int HalfCountY=data_size.y/(2*STEP_Y);
+	int HalfCountZ=data_size.z/(2*STEP_Z);
 	//HalfCountZ=HalfCountY=HalfCountX=0;
 	//double N=0.05;
 	//double RazmX_By_N=razm_x*COUNT_OF_ALL_SHOWED_POINTS/3*N;
@@ -871,9 +872,9 @@ void ballPivot::init_data(char * file)
 			for(int z=0; z<data_size.z; z++)
 				data3ar[x][y][z] = data1ar[z*data_size.y*data_size.x+y*data_size.x+x];
 
-	COUNT_OF_POINTS_X=data_size.x/STEP;
-	COUNT_OF_POINTS_Y=data_size.y/STEP;
-	COUNT_OF_POINTS_Z=data_size.z/STEP;
+	COUNT_OF_POINTS_X=data_size.x/STEP_X;
+	COUNT_OF_POINTS_Y=data_size.y/STEP_Y;
+	COUNT_OF_POINTS_Z=data_size.z/STEP_Z;
 	
 	razm_x=scale.x;
 	razm_y=scale.y;
@@ -892,7 +893,7 @@ void ballPivot::init_data(char * file)
 				t_points[i*COUNT_OF_POINTS_Y*COUNT_OF_POINTS_Z + j*COUNT_OF_POINTS_Z + k].setX(i);
 				t_points[i*COUNT_OF_POINTS_Y*COUNT_OF_POINTS_Z + j*COUNT_OF_POINTS_Z + k].setY(j);
 				t_points[i*COUNT_OF_POINTS_Y*COUNT_OF_POINTS_Z + j*COUNT_OF_POINTS_Z + k].setZ(k);
-				t_points[i*COUNT_OF_POINTS_Y*COUNT_OF_POINTS_Z + j*COUNT_OF_POINTS_Z + k].setVal(data3ar[i*STEP][j*STEP][k*STEP]);
+				t_points[i*COUNT_OF_POINTS_Y*COUNT_OF_POINTS_Z + j*COUNT_OF_POINTS_Z + k].setVal(data3ar[i*STEP_X][j*STEP_Y][k*STEP_Z]);
 			}
 		}
 	}
@@ -914,7 +915,7 @@ ballPivot::ballPivot(char *file)
 	razm_x=1; razm_y=1; razm_z=1;
 	COUNT_OF_POINTS_X=0; COUNT_OF_POINTS_Y=0; COUNT_OF_POINTS_Z=0;
 	COUNT_OF_ALL_POINTS=0; COUNT_OF_ALL_SHOWED_POINTS=0;
-	STEP=5;
+	STEP_X=STEP_Y=STEP_Z=5;
 	radius=0;
 	camera_pos=c_point(0,0,-10);
 	angle=5.0f*M_PI/180;
@@ -939,54 +940,61 @@ ballPivot::ballPivot(char *file)
 
 ballPivot::ballPivot(ScanData* InputData)
 {
-	MIN_DENSITY = 100;
-	STEP=10;
-	razm_x=InputData->scaleX; razm_y=InputData->scaleY; razm_z=InputData->scaleZ;
-	COUNT_OF_POINTS_X=InputData->sizeX/STEP; COUNT_OF_POINTS_Y=InputData->sizeY/STEP; COUNT_OF_POINTS_Z=InputData->sizeZ;
-	COUNT_OF_ALL_POINTS=COUNT_OF_POINTS_X*COUNT_OF_POINTS_Y*COUNT_OF_POINTS_Z; 
-	COUNT_OF_ALL_SHOWED_POINTS=0;
-	radius=8;
-	camera_pos=c_point(0,0,-10);
-	angle=5.0f*M_PI/180;
-	TRIANGLES_COUNT=0;
+ MIN_DENSITY = 100;
+ STEP_X = STEP_Y = 10; STEP_Z = 2;
+ razm_x=InputData->scaleX; razm_y=InputData->scaleY; razm_z=InputData->scaleZ;
+ scale.x=razm_x; scale.y=razm_y; scale.z=razm_z;
+ COUNT_OF_POINTS_X=InputData->sizeX/STEP_X; COUNT_OF_POINTS_Y=InputData->sizeY/STEP_Y; COUNT_OF_POINTS_Z=InputData->sizeZ/STEP_Z;
+ data_size.x=InputData->sizeX; data_size.y=InputData->sizeY; data_size.z=InputData->sizeZ;
+ COUNT_OF_ALL_POINTS=COUNT_OF_POINTS_X*COUNT_OF_POINTS_Y*COUNT_OF_POINTS_Z; 
+ COUNT_OF_ALL_SHOWED_POINTS=0;
+ radius=8;
+ camera_pos=c_point(0,0,-10);
+ angle=5.0f*M_PI/180;
+ TRIANGLES_COUNT=0;
 
-	for (int i = 0; i < COUNT_OF_POINTS_X; ++i)
-		for (int j = 0; j < COUNT_OF_POINTS_Y; ++j)
-			for (int k = 0; k < COUNT_OF_POINTS_Z; ++k)
-				if(InputData->data[k*STEP*COUNT_OF_POINTS_X*COUNT_OF_POINTS_Y+j*STEP*COUNT_OF_POINTS_X+i*STEP]>=MIN_DENSITY)
-					COUNT_OF_ALL_SHOWED_POINTS++;
+ for (int i = 0; i < InputData->sizeX; i+=STEP_X)
+ for (int j = 0; j < InputData->sizeY; j+=STEP_Y)
+ for (int k = 0; k < InputData->sizeZ; k+=STEP_Z)
+ if(InputData->data[i+InputData->sizeX*j+InputData->sizeX*InputData->sizeY*k]>=MIN_DENSITY)
+ COUNT_OF_ALL_SHOWED_POINTS++;
 
-	//delete [] all_points;
-	all_points = new c_point [COUNT_OF_ALL_SHOWED_POINTS];
-	c_edge::all_points=all_points;
+ all_points = new c_point [COUNT_OF_ALL_SHOWED_POINTS];
+ c_edge::all_points=all_points;
 
-	int num=0;
-	for (int i = 0; i < COUNT_OF_POINTS_X; ++i)
-		for (int j = 0; j < COUNT_OF_POINTS_Y; ++j)
-			for (int k = 0; k < COUNT_OF_POINTS_Z; ++k)
-				if(InputData->data[k*STEP*COUNT_OF_POINTS_X*COUNT_OF_POINTS_Y+j*STEP*COUNT_OF_POINTS_X+i*STEP]>=MIN_DENSITY)
-				{
-					all_points[num].setX(i);
-					all_points[num].setY(j);
-					all_points[num].setZ(k);
-					all_points[num].setVal(InputData->data[k*STEP*COUNT_OF_POINTS_X*COUNT_OF_POINTS_Y+j*STEP*COUNT_OF_POINTS_X+i*STEP]);
-					num++;
-				}
+ int num=0;
+ for (int i = 0; i < COUNT_OF_POINTS_X; ++i)
+ for (int j = 0; j < COUNT_OF_POINTS_Y; ++j)
+ for (int k = 0; k < COUNT_OF_POINTS_Z; ++k)
+ if(InputData->data[k*STEP_Z*InputData->sizeX*InputData->sizeY+j*STEP_Y*InputData->sizeX+i*STEP_X]>=MIN_DENSITY)
+ {
+  all_points[num].setX(i);
+  all_points[num].setY(j);
+  all_points[num].setZ(k);
+  all_points[num].setVal(InputData->data[k*STEP_Z*InputData->sizeX*InputData->sizeY+j*STEP_Y*InputData->sizeX+i*STEP_X]);
+  num++;
+ }
 	
-	std::cout<<"Count of all points:"<<std::endl;
-	std::cout<<data_size.x * data_size.y * data_size.z<<std::endl;
-	std::cout<<"Sizes:"<<std::endl;
-	std::cout<<"x:"<<data_size.x<<std::endl;
-	std::cout<<"y:"<<data_size.y<<std::endl;
-	std::cout<<"z:"<<data_size.z<<std::endl;
-	std::cout<<"Sizes of voxel"<<std::endl;
-	std::cout<<"x:"<<scale.x<<std::endl;
-	std::cout<<"y:"<<scale.y<<std::endl;
-	std::cout<<"z:"<<scale.z<<std::endl;
+ std::cout<<"Count of all points:"<<std::endl;
+ std::cout<<data_size.x * data_size.y * data_size.z<<std::endl;
+ std::cout<<"Sizes:"<<std::endl;
+ std::cout<<"x:"<<data_size.x<<std::endl;
+ std::cout<<"y:"<<data_size.y<<std::endl;
+ std::cout<<"z:"<<data_size.z<<std::endl;
+ std::cout<<"Sizes of voxel"<<std::endl;
+ std::cout<<"x:"<<scale.x<<std::endl;
+ std::cout<<"y:"<<scale.y<<std::endl;
+ std::cout<<"z:"<<scale.z<<std::endl;
 
-//	calc_showed_points(t_points, COUNT_OF_ALL_POINTS, MIN_DENSITY);
-	cout<<endl<<COUNT_OF_ALL_SHOWED_POINTS<<endl;
+ //	calc_showed_points(t_points, COUNT_OF_ALL_POINTS, MIN_DENSITY);
+ cout<<endl<<COUNT_OF_ALL_SHOWED_POINTS<<endl;
 }
+
+ballPivot::ballPivot(TVoxelsData *VoxelsData, int SegmentIndex)
+{
+
+}
+
 
 void ballPivot::buildMesh()
 {

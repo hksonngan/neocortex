@@ -69,9 +69,9 @@ bool ScanData::LoadData(const char *pathToBinFile)
 
 bool ScanData::LoadData (const char *pathToBinFile, size_t StartLayer, size_t nLayers)
 {
- /* ReleaseResources();
+ ReleaseResources();
  
- data = new short [nLayers*sizeX*sizeY];
+ /* data = new short [nLayers*sizeX*sizeY];
  
  ifstream fs(pathToBinFile, std::ios::in | std::ios::binary);
 
