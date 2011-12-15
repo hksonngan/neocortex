@@ -26,8 +26,8 @@ using namespace cv;
 #pragma comment (lib,"User32.lib")
 #pragma comment (lib,"gdi32.lib")
 
-#define MEMORY_LIMIT 1300000000
-#define K_MAX 50
+#define MEMORY_LIMIT 1300000000			// предельное значение используемой оперативной памяти (глобальная настройка)
+#define K_MAX 50						// максимально допустимое число сегментов
 
 struct TColor 
 {
@@ -37,6 +37,8 @@ struct TColor
         R(value_R), G(value_G), B(value_B), A(value_A) {};
  TColor(float value_R, float value_G, float value_B): R(value_R), G(value_G), B(value_B) {};
 };
+
+enum ReconstructionMode {D2, D3};
 
 struct TVoxel							// трёхмерный воксел
 {
@@ -53,28 +55,17 @@ struct TSegment					// сегмент из вокселов
  short MaxDensity;				// максимальное значение плотности
  
  TColor Color;					// цвет сегмента
- uchar Transparensy;			// уровень прозрачности
  bool Visible;					// атрибут видимости вокселов, входящих в сегмент
 
  TColor tmpColor;				// импортированный цвет сегмента
- uchar tmpTransparensy;			// импортированная непрозрачность
  bool tmpVisible;				// импортированный атрибут видимости
 
  // Конструктор сегмента по умолчанию
  TSegment(): Volume(0.0f), MinDensity(0), MaxDensity(0), 
-	         Color(TColor(0.0f, 0.0f, 0.0f, 0.0f)), Transparensy(255), Visible(false), 
-			 tmpColor(TColor(0.0f, 0.0f, 0.0f, 0.0f)), tmpTransparensy(255), tmpVisible(false) {};
+	         Color(TColor(0.0f, 0.0f, 0.0f, 0.0f)), Visible(false), 
+			 tmpColor(TColor(0.0f, 0.0f, 0.0f, 0.0f)), tmpVisible(false) {};
  
 };
-
-/* struct TSnakeParameters
-{
- float alpha, beta, gamma;		// параметры метода активного контура
- int iterations_number;			// количество итераций метода
-
- // Конструктор по умолчанию
- TSnakeParameters(): alpha(1.0f), beta(2.0f), gamma(15.0f), iterations_number(30) {};
-}; */
 
 namespace Neocortex 
 {
@@ -95,12 +86,8 @@ namespace Neocortex
 	///          resources associated with this form.
 	/// </summary>
 
-	//public delegate void MyVisibleDelegate_2D(size_t iLayer, size_t index, bool value);
-	//public delegate void MyColorDelegate_2D(size_t iLayer, size_t index, TColor Value_Color);
-
-	//public delegate void MyVisibleDelegate_3D(size_t index, bool value);
-	//public delegate void MyColorDelegate_3D(size_t index, TColor Value_Color);
-
+	public delegate void MySegmentIndexDelegate( size_t index, int SegmentIndex);
+		
 	public ref class MainForm : public System::Windows::Forms::Form
 	{
 	public:
@@ -112,11 +99,10 @@ namespace Neocortex
 			//
 		}
 
-		//void ChangeVisible_2D(size_t index, bool value)	{VoxelsData[index].IsVisible_2D = value;}
-		//void ChangeVisible_3D(size_t index, bool value) {VoxelsData[index].IsVisible_3D = value;}
+		void ChangeSegmentIndex_2D(size_t index, int SegmentIndex) {VoxelsData[index].SegmentIndex_2D = SegmentIndex;}
+		void ChangeSegmentIndex_3D(size_t index, int SegmentIndex) {VoxelsData[index].SegmentIndex_3D = SegmentIndex;}
 
-		//void ChangeVoxelColor_2D(size_t index, TColor Value_Color) {VoxelsData[index].Color_2D = Value_Color;}
-		//void ChangeVoxelColor_3D(size_t index, TColor Value_Color) {VoxelsData[index].Color_3D = Value_Color;}
+		
 
 		
 	protected:
@@ -150,29 +136,17 @@ namespace Neocortex
               }
              }
 
-	protected: 
 
-	private: System::Windows::Forms::MenuStrip^  MenuStrip;
-
-	private: System::Windows::Forms::ToolStripMenuItem^  файлToolStripMenuItem;
-	private: System::Windows::Forms::ToolStripMenuItem^  ToolStripMenuItem_DownloadFile;
-	private: System::Windows::Forms::ToolStripMenuItem^  ToolStripMenuItem_DownloadFolder;
-	private: System::Windows::Forms::ToolStripMenuItem^  ToolStripMenuItem_Exit;
+	
 
 
-	private: System::Windows::Forms::Panel^  RenderingPanel;
-	private: System::Windows::Forms::Label^  Label_ClustersCount;
-	private: System::Windows::Forms::TrackBar^  TrackBar_ClustersCount;
-	private: System::Windows::Forms::GroupBox^  GroupBoxSegmentation;
 
 	private: System::Windows::Forms::OpenFileDialog^  OpenDataDialog;
 
 	public:
-		//MyVisibleDelegate^ StaticDelInst_Visible_2D;
-		//MyVisibleDelegate^ StaticDelInst_Visible_3D;
-		//MyColorDelegate^ StaticDelInst_Color_2D;
-		//MyColorDelegate^ StaticDelInst_Color_3D;
-
+		MySegmentIndexDelegate^ StaticDelInst_SegmentIndex_2D;
+		MySegmentIndexDelegate^ StaticDelInst_SegmentIndex_3D;
+		
 		int PartPointer;							// указатель на текущую порцию слоёв
 		System::String^ FolderPath;					// путь к каталогу со слоями
 		vector <WCHAR*> *StrFiles;					// список файлов слоёв
@@ -183,7 +157,7 @@ namespace Neocortex
 		vector <TSegment>* Segments_3D;				// вектор сегментов для нескольких слоёв как единого целого
 		TSnakeParameters* SnakeParameters;			// параметры метода активного контура
 
-		ballPivot *qw;
+		ballPivot *qw;								// объект класса для для 3d-реконструкции
 		
 	protected: 
 
@@ -202,208 +176,195 @@ namespace Neocortex
         GLint theBox;
 		GLuint *layerTextures, shaderTexture;
 
-        float angleXRotation, angleYRotation;		// углы поворота изображения вокруг координатных осей
-		System::Drawing::Point mousePosition; 
-		float distance_x, distance_y, distance_z;
-		float depth;
+        System::Drawing::Point mousePosition;		// позиция курсора мыши в главном окне рендеринга
+		float angleXRotation, angleYRotation;		// углы поворота изображения вокруг координатных осей
+		float distance_x, distance_y, distance_z;	// расстояния от начала координат вдоль координатных осей
+		float BrightnessMult;						// значение множителя яркости
+		float AlphaTestValue;						// значение уровня прозрачности alpha 
+		float depth;								// глубина в z-буфере
 	private:
-		short MinDensity, MaxDensity;
-		short low_density, high_density;
-
-		float BrightnessMult;				  // значение множителя яркости
-		float AlphaTestValue;				  // значение уровня прозрачности alpha 
-
+		short MinDensity, MaxDensity;		  // минимальное и максимальное значения плотности вокселов (из встречающихся)
+		short low_density, high_density;	  // пороги на значения плотности вокселов (для сегментации)
 		size_t StartLayerIndex_3D;			  // индекс начального слоя в 3D-режиме рендеринга и сегментации
 		bool CellValueChanging;				  // признак изменения значения ячейки таблицы после редактирования
 
-		private: System::Windows::Forms::Timer^  RenderTimer;
-		private: System::Windows::Forms::Label^  Label_Status;
-		private: System::Windows::Forms::ProgressBar^  ProgressBar_Iterations;
-		private: System::Windows::Forms::ProgressBar^  ProgressBar_Layers;
+
+		/// <summary> Общие компоненты на форме /// </summary>
+		
+		private: System::Windows::Forms::Panel^ RenderingPanel;					// главное окно рендеринга
+		private: System::Windows::Forms::Timer^ RenderTimer;					// таймер для отрисовки содержимого
+		private: System::Windows::Forms::Label^ Label_Status;					// строка текущего состояния системы
+		
+		private: System::Windows::Forms::ProgressBar^ ProgressBar_Iterations;	// индикатор процесса по итерациям
+		private: System::Windows::Forms::ProgressBar^ ProgressBar_Layers;		// индикатор процесса по слоям
+
+		private: System::Windows::Forms::MenuStrip^ MenuStrip;								// главное меню
+		private: System::Windows::Forms::ToolStripMenuItem^ ToolStripMenuItem_File;			// главное меню - секция "Файл"
+		private: System::Windows::Forms::ToolStripMenuItem^ ToolStripMenuItem_DownloadData;	// главное меню - секция "Файл" - загрузка данных
+		private: System::Windows::Forms::ToolStripMenuItem^ ToolStripMenuItem_ExportData;   // главное меню - секция "Файл" - экспорт данных	 
+		 
+		private: System::Windows::Forms::ToolStripMenuItem^ ToolStripMenuItem_Exit;			// главное меню - секция "Файл" - выход из системы
+		private: System::Windows::Forms::ToolStripMenuItem^ ToolStripMenuItem_FromBinFile;	// главное меню - секция "Файл" - загрузка данных из bin-файла
+		private: System::Windows::Forms::ToolStripMenuItem^ ToolStripMenuItem_FromFolder;	// главное меню - секция "Файл" - загрузка данных из каталога
+		private: System::Windows::Forms::ToolStripMenuItem^ ToolStripMenuItem_ToBinFile;	// главное меню - секция "Файл" - экспорт данных в bin-файл
+		private: System::Windows::Forms::ToolStripMenuItem^ ToolStripMenuItem_ToFolder;		// главное меню - секция "Файл" - экспорт данных в каталог
+
+		private: System::Windows::Forms::TabControl^  TabControlOptions;					// панель вкладок с опциями
+
+		private: System::Windows::Forms::TabPage^ Information;								// информационная вкладка
+		private: System::Windows::Forms::TabPage^ Visualization;							// настройки визуализации
+		private: System::Windows::Forms::TabPage^ Localization;								// настройки локализации
+		private: System::Windows::Forms::TabPage^ Segmentation;								// настройки сегментации
+		private: System::Windows::Forms::TabPage^ Reconstruction;							// настройки 3d-реконструкции
+
+	    private: System::Windows::Forms::FolderBrowserDialog^ FolderBrowserDialog;
+
+		/// <summary> Компоненты на панели информации /// </summary>
+
+		private: System::Windows::Forms::Label^ Label_FileSize;
+		private: System::Windows::Forms::Label^ Label_LayerWidth;
+		private: System::Windows::Forms::Label^ Label_LayerHeight;
+		private: System::Windows::Forms::Label^ Label_LayersNumber;
+		private: System::Windows::Forms::Label^ Label_InputScaleX;
+		private: System::Windows::Forms::Label^ Label_InputScaleY;
+		private: System::Windows::Forms::Label^ Label_InputScaleZ;
+
+		/// <summary> Компоненты на панели визуализации /// </summary>
+
+		private: System::Windows::Forms::GroupBox^ GroupBox_Methods;
+		private: System::Windows::Forms::RadioButton^ RadioButtonTextures_2D;
+		private: System::Windows::Forms::RadioButton^ RadioButtonTextures_3D;
+		private: System::Windows::Forms::RadioButton^ RadioButtonRaycasting;
+
+		private: System::Windows::Forms::GroupBox^ GroupBox_Modes;
+		private: System::Windows::Forms::RadioButton^ RadioButton_2D;
+		private: System::Windows::Forms::RadioButton^ RadioButton_3D;
+
+		private: System::Windows::Forms::CheckBox^ CheckBox_Transparency;
+		private: System::Windows::Forms::CheckBox^ CheckBox_DepthTest;
+
+	    private: System::Windows::Forms::Label^ Label_BrightnessMult;
+		private: System::Windows::Forms::TextBox^ TextBox_BrightnessMult;
+		private: System::Windows::Forms::TrackBar^ TrackBar_BrightnessMult;
+
+	    private: System::Windows::Forms::CheckBox^ CheckBox_AlphaTest;
+		private: System::Windows::Forms::Label^ Label_ThresholdAlphaValue;
+		private: System::Windows::Forms::TextBox^ TextBox_AlphaValue;
+		private: System::Windows::Forms::TrackBar^ TrackBar_Alpha;
+
+	    private: System::Windows::Forms::Label^ Label_LayersDistance;
+		private: System::Windows::Forms::TrackBar^ TrackBar_LayersDistance;
+
+	    private: System::Windows::Forms::Label^ Label_LayerInfo;
+		private: System::Windows::Forms::TrackBar^ TrackBar_Layers;
+
+	    private: System::Windows::Forms::Label^ Label_StartLayer;
+		private: System::Windows::Forms::NumericUpDown^ NumericUpDown_Start;
+		private: System::Windows::Forms::Label^ Label_FinishLayer;
+		private: System::Windows::Forms::NumericUpDown^ NumericUpDown_Finish;
+
+	    private: System::Windows::Forms::Button^ Button_PreviousPart;
+		private: System::Windows::Forms::Button^ Button_NextPart;
+
+		private: System::Windows::Forms::GroupBox^ GroupBox_Scales;
+
+		private: System::Windows::Forms::Label^ Label_CurrentScaleX;
+		private: System::Windows::Forms::Label^ Label_CurrentScaleY;
+		private: System::Windows::Forms::Label^ Label_CurrentScaleZ;
+
+		private: System::Windows::Forms::TextBox^ TextBox_ScaleX;
+		private: System::Windows::Forms::TextBox^ TextBox_ScaleY;
+		private: System::Windows::Forms::TextBox^ TextBox_ScaleZ;
+
+		private: System::Windows::Forms::TrackBar^ TrackBar_ScaleX;
+		private: System::Windows::Forms::TrackBar^ TrackBar_ScaleY;
+		private: System::Windows::Forms::TrackBar^ TrackBar_ScaleZ;
+
+		/// <summary> Компоненты на панели локализации /// </summary>
+
+		private: System::Windows::Forms::GroupBox^  GroupBox_SnakeParameters;
+
+		private: System::Windows::Forms::Label^ Label_AlphaValue;
+		private: System::Windows::Forms::Label^ Label_BetaValue;
+		private: System::Windows::Forms::Label^ Label_GammaValue;
+		private: System::Windows::Forms::Label^ Label_IterationsNumber;
+
+		private: System::Windows::Forms::TrackBar^ TrackBar_AlphaValue;
+		private: System::Windows::Forms::TrackBar^ TrackBar_BetaValue;
+		private: System::Windows::Forms::TrackBar^ TrackBar_GammaValue;
+		private: System::Windows::Forms::TrackBar^ TrackBar_IterationsNumber;
+
+		private: System::Windows::Forms::CheckBox^ CheckBox_Gradients;
+		private: System::Windows::Forms::CheckBox^ CheckBox_Localization;
+
+		private: System::Windows::Forms::Button^ ButtonLocalize;
+
+		private: System::Windows::Forms::Label^ Label_PointX;
+		private: System::Windows::Forms::TextBox^ TextBox_PointX;
+		private: System::Windows::Forms::Label^ Label_PointY;
+		private: System::Windows::Forms::TextBox^ TextBox_PointY;
+
+		/// <summary> Компоненты на панели сегментации /// </summary>
 
 		private: System::Windows::Forms::DataGridView^  DataGridView_Clusters;
 
-private: System::Windows::Forms::TrackBar^  TrackBar_IterationsCount;
-private: System::Windows::Forms::Label^  Label_IterationsCount;
+		private: System::Windows::Forms::TrackBar^  TrackBar_IterationsCount;
+		private: System::Windows::Forms::Label^  Label_IterationsCount;
 
-private: System::Windows::Forms::Button^  Button_Clusterization;
-private: System::ComponentModel::BackgroundWorker^  BackgroundWorker;
-private: System::Windows::Forms::Button^  Button_VisualizeSelectedClusters;
+		private: System::Windows::Forms::Button^  Button_Clusterization;
+		private: System::ComponentModel::BackgroundWorker^  BackgroundWorker;
+		private: System::Windows::Forms::Button^  Button_VisualizeSelectedClusters;
 
-private: System::Windows::Forms::ColorDialog^  ColorDialog;
-private: System::Windows::Forms::GroupBox^  GroupBoxSegmentsInfo;
+		private: System::Windows::Forms::ColorDialog^  ColorDialog;
+		private: System::Windows::Forms::GroupBox^  GroupBoxSegmentsInfo;
 
+		private: System::Windows::Forms::CheckBox^  CheckBoxClusters;
 
+		private: System::Windows::Forms::GroupBox^  GroupBoxAlgorithm;
 
+		private: System::Windows::Forms::RadioButton^  RadioButton_Consequtive;
+		private: System::Windows::Forms::RadioButton^  RadioButton_GPU;
 
-private: System::Windows::Forms::CheckBox^  CheckBoxClusters;
 
-private: System::Windows::Forms::Label^  Label_BrightnessMult;
-private: System::Windows::Forms::TextBox^  TextBox_BrightnessMult;
-private: System::Windows::Forms::CheckBox^  CheckBox_Transparency;
-private: System::Windows::Forms::CheckBox^  CheckBox_DepthTest;
+		private: System::Windows::Forms::GroupBox^  GroupBoxDiapason;
 
-private: System::Windows::Forms::RadioButton^  RadioButton_2D;
+		private: System::Windows::Forms::Label^  Label_LowBorder;
+		private: System::Windows::Forms::Label^  Label_HighBorder;
+		private: System::Windows::Forms::TextBox^  TextBox_LowBorder;
+		private: System::Windows::Forms::TextBox^  TextBox_HighBorder;
 
-private: System::Windows::Forms::GroupBox^  GroupBoxAlgorithm;
+		private: System::Windows::Forms::CheckBox^  CheckBox_ColorsExport;
 
-private: System::Windows::Forms::RadioButton^  RadioButton_Consequtive;
-private: System::Windows::Forms::RadioButton^  RadioButton_GPU;
+		private: System::Windows::Forms::DataGridViewTextBoxColumn^ SegmentNumber;
+		private: System::Windows::Forms::DataGridViewTextBoxColumn^ SegmentVolume;
+		private: System::Windows::Forms::DataGridViewTextBoxColumn^ Density_Minimum;
+		private: System::Windows::Forms::DataGridViewTextBoxColumn^ Density_Maximum;
+		private: System::Windows::Forms::DataGridViewButtonColumn^ SegmentColor;
+		private: System::Windows::Forms::DataGridViewTextBoxColumn^ SegmentTransparensy;
+		private: System::Windows::Forms::DataGridViewCheckBoxColumn^ IsSegmentVisible;
 
-private: System::Windows::Forms::RadioButton^  RadioButton_3D;
-private: System::Windows::Forms::GroupBox^  GroupBoxDiapason;
+		private: System::Windows::Forms::CheckBox^  CheckBox_SnakeSegmentation;
 
-private: System::Windows::Forms::Label^  Label_HighBorder;
+		private: System::Windows::Forms::Label^ Label_ClustersCount;
+		private: System::Windows::Forms::TrackBar^ TrackBar_ClustersCount;
+		private: System::Windows::Forms::GroupBox^ GroupBoxSegmentation;
 
-private: System::Windows::Forms::Label^  Label_LowBorder;
-private: System::Windows::Forms::CheckBox^  CheckBox_ColorsExport;
+		/// <summary> Компоненты на панели реконструкции /// </summary>
 
-private: System::Windows::Forms::TextBox^  TextBox_LowBorder;
-private: System::Windows::Forms::TextBox^  TextBox_HighBorder;
+		private: System::Windows::Forms::Label^ Label_StepX;
+		private: System::Windows::Forms::TrackBar^ TrackBar_MeshStepX;
+		private: System::Windows::Forms::Label^ Label_StepY;
+		private: System::Windows::Forms::TrackBar^ TrackBar_MeshStepY;
+		private: System::Windows::Forms::Label^ Label_StepZ;
+		private: System::Windows::Forms::TrackBar^ TrackBar_MeshStepZ;
 
-private: System::Windows::Forms::FolderBrowserDialog^  FolderBrowserDialog;
-private: System::Windows::Forms::ToolStripMenuItem^  изBinфайлаToolStripMenuItem;
-private: System::Windows::Forms::ToolStripMenuItem^  изКаталогаToolStripMenuItem;
-private: System::Windows::Forms::ToolStripMenuItem^  вBinформатToolStripMenuItem;
-private: System::Windows::Forms::ToolStripMenuItem^  вКаталогToolStripMenuItem;
-private: System::Windows::Forms::TabControl^  TabControlOptions;
+		private: System::Windows::Forms::Label^ Label_MinVoxelsDensity;
+		private: System::Windows::Forms::TrackBar^ TrackBar_MinVoxelsDensity;
 
-private: System::Windows::Forms::TabPage^  Visualization;
-private: System::Windows::Forms::TabPage^  Segmentation;
-private: System::Windows::Forms::TabPage^  Reconstruction;
-private: System::Windows::Forms::TabPage^  Localization;
-private: System::Windows::Forms::GroupBox^  GroupBox_Methods;
-
-private: System::Windows::Forms::RadioButton^  RadioButtonTextures_2D;
-private: System::Windows::Forms::RadioButton^  RadioButtonRaycasting;
-
-private: System::Windows::Forms::RadioButton^  RadioButtonTextures_3D;
-private: System::Windows::Forms::CheckBox^  CheckBox_AlphaTest;
-
-private: System::Windows::Forms::TrackBar^  TrackBar_BrightnessMult;
-private: System::Windows::Forms::Label^  Label_ThresholdAlphaValue;
-
-private: System::Windows::Forms::TextBox^  TextBox_AlphaValue;
-
-private: System::Windows::Forms::TrackBar^  TrackBar_Alpha;
-private: System::Windows::Forms::Button^  Button_NextPart;
-
-private: System::Windows::Forms::Button^  Button_PreviousPart;
-private: System::Windows::Forms::Label^  Label_FinishLayer;
-
-private: System::Windows::Forms::Label^  Label_StartLayer;
-
-private: System::Windows::Forms::NumericUpDown^  NumericUpDown_Start;
-private: System::Windows::Forms::Label^  Label_LayerInfo;
-
-private: System::Windows::Forms::TrackBar^  TrackBar_Layers;
-private: System::Windows::Forms::GroupBox^  GroupBox_Modes;
-
-
-private: System::Windows::Forms::NumericUpDown^  NumericUpDown_Finish;
-private: System::Windows::Forms::Label^  Label_LayersDistance;
-private: System::Windows::Forms::GroupBox^  GroupBox_Scales;
-
-
-
-
-
-
-private: System::Windows::Forms::TabPage^  Information;
-private: System::Windows::Forms::Label^  Label_CurrentScaleZ;
-
-private: System::Windows::Forms::Label^  Label_CurrentScaleY;
-
-
-private: System::Windows::Forms::Label^  Label_CurrentScaleX;
-
-
-private: System::Windows::Forms::TrackBar^  TrackBar_ScaleY;
-
-private: System::Windows::Forms::TrackBar^  TrackBar_ScaleX;
-
-private: System::Windows::Forms::TextBox^  TextBox_ScaleZ;
-
-private: System::Windows::Forms::TextBox^  TextBox_ScaleY;
-
-private: System::Windows::Forms::TextBox^  TextBox_ScaleX;
-private: System::Windows::Forms::TrackBar^  TrackBar_ScaleZ;
-
-
-private: System::Windows::Forms::DataGridViewTextBoxColumn^  SegmentNumber;
-private: System::Windows::Forms::DataGridViewTextBoxColumn^  SegmentVolume;
-private: System::Windows::Forms::DataGridViewTextBoxColumn^  Density_Minimum;
-private: System::Windows::Forms::DataGridViewTextBoxColumn^  Density_Maximum;
-private: System::Windows::Forms::DataGridViewButtonColumn^  SegmentColor;
-private: System::Windows::Forms::DataGridViewTextBoxColumn^  SegmentTransparensy;
-private: System::Windows::Forms::DataGridViewCheckBoxColumn^  IsSegmentVisible;
-private: System::Windows::Forms::Label^  Label_LayersNumber;
-
-private: System::Windows::Forms::Label^  Label_LayerHeight;
-
-private: System::Windows::Forms::Label^  Label_LayerWidth;
-
-private: System::Windows::Forms::Label^  Label_FileSize;
-private: System::Windows::Forms::Label^  Label_InputScaleZ;
-
-private: System::Windows::Forms::Label^  Label_InputScaleY;
-
-
-
-private: System::Windows::Forms::Label^  Label_InputScaleX;
-private: System::Windows::Forms::CheckBox^  CheckBox_SnakeSegmentation;
-
-
-
-
-
-private: System::Windows::Forms::Button^  ButtonReconstructionSegments;
-private: System::Windows::Forms::Button^  ButtonReconstructionData;
-private: System::Windows::Forms::TrackBar^  TrackBar_LayersDistance;
-private: System::Windows::Forms::GroupBox^  GroupBox_SnakeParameters;
-
-private: System::Windows::Forms::Label^  Label_BetaValue;
-private: System::Windows::Forms::Label^  Label_AlphaValue;
-private: System::Windows::Forms::TrackBar^  TrackBar_IterationsNumber;
-
-
-
-private: System::Windows::Forms::TrackBar^  TrackBar_GammaValue;
-
-private: System::Windows::Forms::TrackBar^  TrackBar_BetaValue;
-
-private: System::Windows::Forms::TrackBar^  TrackBar_AlphaValue;
-private: System::Windows::Forms::Label^  Label_IterationsNumber;
-
-
-private: System::Windows::Forms::Label^  Label_GammaValue;
-
-private: System::Windows::Forms::Button^  ButtonLocalize;
-private: System::Windows::Forms::CheckBox^  CheckBox_Gradients;
-private: System::Windows::Forms::TextBox^  YPoint_TextBox;
-private: System::Windows::Forms::TextBox^  XPoint_TextBox;
-private: System::Windows::Forms::Label^  YPoint_Label;
-private: System::Windows::Forms::Label^  XPoint_Label;
-private: System::Windows::Forms::CheckBox^  CheckBox_Reconstruction;
-private: System::Windows::Forms::CheckBox^  CheckBox_Localization;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+		private: System::Windows::Forms::Button^ ButtonReconstructionData;
+		private: System::Windows::Forms::Button^ ButtonReconstructionSegments;
+				
+		private: System::Windows::Forms::CheckBox^  CheckBox_Reconstruction;
 
 private: System::ComponentModel::IContainer^  components;
 
@@ -417,13 +378,13 @@ private: System::ComponentModel::IContainer^  components;
 			this->components = (gcnew System::ComponentModel::Container());
 			System::Windows::Forms::DataGridViewCellStyle^  dataGridViewCellStyle1 = (gcnew System::Windows::Forms::DataGridViewCellStyle());
 			this->MenuStrip = (gcnew System::Windows::Forms::MenuStrip());
-			this->файлToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
-			this->ToolStripMenuItem_DownloadFile = (gcnew System::Windows::Forms::ToolStripMenuItem());
-			this->изBinфайлаToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
-			this->изКаталогаToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
-			this->ToolStripMenuItem_DownloadFolder = (gcnew System::Windows::Forms::ToolStripMenuItem());
-			this->вBinформатToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
-			this->вКаталогToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
+			this->ToolStripMenuItem_File = (gcnew System::Windows::Forms::ToolStripMenuItem());
+			this->ToolStripMenuItem_DownloadData = (gcnew System::Windows::Forms::ToolStripMenuItem());
+			this->ToolStripMenuItem_FromBinFile = (gcnew System::Windows::Forms::ToolStripMenuItem());
+			this->ToolStripMenuItem_FromFolder = (gcnew System::Windows::Forms::ToolStripMenuItem());
+			this->ToolStripMenuItem_ExportData = (gcnew System::Windows::Forms::ToolStripMenuItem());
+			this->ToolStripMenuItem_ToBinFile = (gcnew System::Windows::Forms::ToolStripMenuItem());
+			this->ToolStripMenuItem_ToFolder = (gcnew System::Windows::Forms::ToolStripMenuItem());
 			this->ToolStripMenuItem_Exit = (gcnew System::Windows::Forms::ToolStripMenuItem());
 			this->RenderingPanel = (gcnew System::Windows::Forms::Panel());
 			this->Label_ClustersCount = (gcnew System::Windows::Forms::Label());
@@ -509,10 +470,10 @@ private: System::ComponentModel::IContainer^  components;
 			this->RadioButtonTextures_2D = (gcnew System::Windows::Forms::RadioButton());
 			this->Localization = (gcnew System::Windows::Forms::TabPage());
 			this->CheckBox_Localization = (gcnew System::Windows::Forms::CheckBox());
-			this->YPoint_TextBox = (gcnew System::Windows::Forms::TextBox());
-			this->XPoint_TextBox = (gcnew System::Windows::Forms::TextBox());
-			this->YPoint_Label = (gcnew System::Windows::Forms::Label());
-			this->XPoint_Label = (gcnew System::Windows::Forms::Label());
+			this->TextBox_PointY = (gcnew System::Windows::Forms::TextBox());
+			this->TextBox_PointX = (gcnew System::Windows::Forms::TextBox());
+			this->Label_PointY = (gcnew System::Windows::Forms::Label());
+			this->Label_PointX = (gcnew System::Windows::Forms::Label());
 			this->CheckBox_Gradients = (gcnew System::Windows::Forms::CheckBox());
 			this->ButtonLocalize = (gcnew System::Windows::Forms::Button());
 			this->GroupBox_SnakeParameters = (gcnew System::Windows::Forms::GroupBox());
@@ -526,6 +487,14 @@ private: System::ComponentModel::IContainer^  components;
 			this->TrackBar_AlphaValue = (gcnew System::Windows::Forms::TrackBar());
 			this->Segmentation = (gcnew System::Windows::Forms::TabPage());
 			this->Reconstruction = (gcnew System::Windows::Forms::TabPage());
+			this->Label_MinVoxelsDensity = (gcnew System::Windows::Forms::Label());
+			this->TrackBar_MinVoxelsDensity = (gcnew System::Windows::Forms::TrackBar());
+			this->Label_StepZ = (gcnew System::Windows::Forms::Label());
+			this->TrackBar_MeshStepZ = (gcnew System::Windows::Forms::TrackBar());
+			this->Label_StepY = (gcnew System::Windows::Forms::Label());
+			this->TrackBar_MeshStepY = (gcnew System::Windows::Forms::TrackBar());
+			this->Label_StepX = (gcnew System::Windows::Forms::Label());
+			this->TrackBar_MeshStepX = (gcnew System::Windows::Forms::TrackBar());
 			this->CheckBox_Reconstruction = (gcnew System::Windows::Forms::CheckBox());
 			this->ButtonReconstructionData = (gcnew System::Windows::Forms::Button());
 			this->ButtonReconstructionSegments = (gcnew System::Windows::Forms::Button());
@@ -560,68 +529,72 @@ private: System::ComponentModel::IContainer^  components;
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->TrackBar_AlphaValue))->BeginInit();
 			this->Segmentation->SuspendLayout();
 			this->Reconstruction->SuspendLayout();
+			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->TrackBar_MinVoxelsDensity))->BeginInit();
+			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->TrackBar_MeshStepZ))->BeginInit();
+			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->TrackBar_MeshStepY))->BeginInit();
+			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->TrackBar_MeshStepX))->BeginInit();
 			this->SuspendLayout();
 			// 
 			// MenuStrip
 			// 
-			this->MenuStrip->Items->AddRange(gcnew cli::array< System::Windows::Forms::ToolStripItem^  >(1) {this->файлToolStripMenuItem});
+			this->MenuStrip->Items->AddRange(gcnew cli::array< System::Windows::Forms::ToolStripItem^  >(1) {this->ToolStripMenuItem_File});
 			this->MenuStrip->Location = System::Drawing::Point(0, 0);
 			this->MenuStrip->Name = L"MenuStrip";
 			this->MenuStrip->Size = System::Drawing::Size(1273, 26);
 			this->MenuStrip->TabIndex = 1;
 			this->MenuStrip->Text = L"menuStrip1";
 			// 
-			// файлToolStripMenuItem
+			// ToolStripMenuItem_File
 			// 
-			this->файлToolStripMenuItem->DropDownItems->AddRange(gcnew cli::array< System::Windows::Forms::ToolStripItem^  >(3) {this->ToolStripMenuItem_DownloadFile, 
-				this->ToolStripMenuItem_DownloadFolder, this->ToolStripMenuItem_Exit});
-			this->файлToolStripMenuItem->Name = L"файлToolStripMenuItem";
-			this->файлToolStripMenuItem->Size = System::Drawing::Size(54, 22);
-			this->файлToolStripMenuItem->Text = L"Файл";
+			this->ToolStripMenuItem_File->DropDownItems->AddRange(gcnew cli::array< System::Windows::Forms::ToolStripItem^  >(3) {this->ToolStripMenuItem_DownloadData, 
+				this->ToolStripMenuItem_ExportData, this->ToolStripMenuItem_Exit});
+			this->ToolStripMenuItem_File->Name = L"ToolStripMenuItem_File";
+			this->ToolStripMenuItem_File->Size = System::Drawing::Size(54, 22);
+			this->ToolStripMenuItem_File->Text = L"Файл";
 			// 
-			// ToolStripMenuItem_DownloadFile
+			// ToolStripMenuItem_DownloadData
 			// 
-			this->ToolStripMenuItem_DownloadFile->DropDownItems->AddRange(gcnew cli::array< System::Windows::Forms::ToolStripItem^  >(2) {this->изBinфайлаToolStripMenuItem, 
-				this->изКаталогаToolStripMenuItem});
-			this->ToolStripMenuItem_DownloadFile->Name = L"ToolStripMenuItem_DownloadFile";
-			this->ToolStripMenuItem_DownloadFile->ShortcutKeys = static_cast<System::Windows::Forms::Keys>((System::Windows::Forms::Keys::Control | System::Windows::Forms::Keys::O));
-			this->ToolStripMenuItem_DownloadFile->Size = System::Drawing::Size(266, 22);
-			this->ToolStripMenuItem_DownloadFile->Text = L"Загрузить данные";
+			this->ToolStripMenuItem_DownloadData->DropDownItems->AddRange(gcnew cli::array< System::Windows::Forms::ToolStripItem^  >(2) {this->ToolStripMenuItem_FromBinFile, 
+				this->ToolStripMenuItem_FromFolder});
+			this->ToolStripMenuItem_DownloadData->Name = L"ToolStripMenuItem_DownloadData";
+			this->ToolStripMenuItem_DownloadData->ShortcutKeys = static_cast<System::Windows::Forms::Keys>((System::Windows::Forms::Keys::Control | System::Windows::Forms::Keys::O));
+			this->ToolStripMenuItem_DownloadData->Size = System::Drawing::Size(266, 22);
+			this->ToolStripMenuItem_DownloadData->Text = L"Загрузить данные";
 			// 
-			// изBinфайлаToolStripMenuItem
+			// ToolStripMenuItem_FromBinFile
 			// 
-			this->изBinфайлаToolStripMenuItem->Name = L"изBinфайлаToolStripMenuItem";
-			this->изBinфайлаToolStripMenuItem->Size = System::Drawing::Size(195, 22);
-			this->изBinфайлаToolStripMenuItem->Text = L"Из bin-файла...";
-			this->изBinфайлаToolStripMenuItem->Click += gcnew System::EventHandler(this, &MainForm::ToolStripMenuItem_DownloadFile_Click);
+			this->ToolStripMenuItem_FromBinFile->Name = L"ToolStripMenuItem_FromBinFile";
+			this->ToolStripMenuItem_FromBinFile->Size = System::Drawing::Size(195, 22);
+			this->ToolStripMenuItem_FromBinFile->Text = L"Из bin-файла...";
+			this->ToolStripMenuItem_FromBinFile->Click += gcnew System::EventHandler(this, &MainForm::ToolStripMenuItem_DownloadFile_Click);
 			// 
-			// изКаталогаToolStripMenuItem
+			// ToolStripMenuItem_FromFolder
 			// 
-			this->изКаталогаToolStripMenuItem->Name = L"изКаталогаToolStripMenuItem";
-			this->изКаталогаToolStripMenuItem->Size = System::Drawing::Size(195, 22);
-			this->изКаталогаToolStripMenuItem->Text = L"Из каталога...";
-			this->изКаталогаToolStripMenuItem->Click += gcnew System::EventHandler(this, &MainForm::ToolStripMenuItem_DownloadFolder_Click);
+			this->ToolStripMenuItem_FromFolder->Name = L"ToolStripMenuItem_FromFolder";
+			this->ToolStripMenuItem_FromFolder->Size = System::Drawing::Size(195, 22);
+			this->ToolStripMenuItem_FromFolder->Text = L"Из каталога...";
+			this->ToolStripMenuItem_FromFolder->Click += gcnew System::EventHandler(this, &MainForm::ToolStripMenuItem_DownloadFolder_Click);
 			// 
-			// ToolStripMenuItem_DownloadFolder
+			// ToolStripMenuItem_ExportData
 			// 
-			this->ToolStripMenuItem_DownloadFolder->DropDownItems->AddRange(gcnew cli::array< System::Windows::Forms::ToolStripItem^  >(2) {this->вBinформатToolStripMenuItem, 
-				this->вКаталогToolStripMenuItem});
-			this->ToolStripMenuItem_DownloadFolder->Name = L"ToolStripMenuItem_DownloadFolder";
-			this->ToolStripMenuItem_DownloadFolder->ShortcutKeys = static_cast<System::Windows::Forms::Keys>((System::Windows::Forms::Keys::Control | System::Windows::Forms::Keys::E));
-			this->ToolStripMenuItem_DownloadFolder->Size = System::Drawing::Size(266, 22);
-			this->ToolStripMenuItem_DownloadFolder->Text = L"Экспорт данных";
+			this->ToolStripMenuItem_ExportData->DropDownItems->AddRange(gcnew cli::array< System::Windows::Forms::ToolStripItem^  >(2) {this->ToolStripMenuItem_ToBinFile, 
+				this->ToolStripMenuItem_ToFolder});
+			this->ToolStripMenuItem_ExportData->Name = L"ToolStripMenuItem_ExportData";
+			this->ToolStripMenuItem_ExportData->ShortcutKeys = static_cast<System::Windows::Forms::Keys>((System::Windows::Forms::Keys::Control | System::Windows::Forms::Keys::E));
+			this->ToolStripMenuItem_ExportData->Size = System::Drawing::Size(266, 22);
+			this->ToolStripMenuItem_ExportData->Text = L"Экспорт данных";
 			// 
-			// вBinформатToolStripMenuItem
+			// ToolStripMenuItem_ToBinFile
 			// 
-			this->вBinформатToolStripMenuItem->Name = L"вBinформатToolStripMenuItem";
-			this->вBinформатToolStripMenuItem->Size = System::Drawing::Size(197, 22);
-			this->вBinформатToolStripMenuItem->Text = L"В bin-формат...";
+			this->ToolStripMenuItem_ToBinFile->Name = L"ToolStripMenuItem_ToBinFile";
+			this->ToolStripMenuItem_ToBinFile->Size = System::Drawing::Size(197, 22);
+			this->ToolStripMenuItem_ToBinFile->Text = L"В bin-формат...";
 			// 
-			// вКаталогToolStripMenuItem
+			// ToolStripMenuItem_ToFolder
 			// 
-			this->вКаталогToolStripMenuItem->Name = L"вКаталогToolStripMenuItem";
-			this->вКаталогToolStripMenuItem->Size = System::Drawing::Size(197, 22);
-			this->вКаталогToolStripMenuItem->Text = L"В каталог...";
+			this->ToolStripMenuItem_ToFolder->Name = L"ToolStripMenuItem_ToFolder";
+			this->ToolStripMenuItem_ToFolder->Size = System::Drawing::Size(197, 22);
+			this->ToolStripMenuItem_ToFolder->Text = L"В каталог...";
 			// 
 			// ToolStripMenuItem_Exit
 			// 
@@ -1509,10 +1482,10 @@ private: System::ComponentModel::IContainer^  components;
 			// 
 			this->Localization->BackColor = System::Drawing::SystemColors::Control;
 			this->Localization->Controls->Add(this->CheckBox_Localization);
-			this->Localization->Controls->Add(this->YPoint_TextBox);
-			this->Localization->Controls->Add(this->XPoint_TextBox);
-			this->Localization->Controls->Add(this->YPoint_Label);
-			this->Localization->Controls->Add(this->XPoint_Label);
+			this->Localization->Controls->Add(this->TextBox_PointY);
+			this->Localization->Controls->Add(this->TextBox_PointX);
+			this->Localization->Controls->Add(this->Label_PointY);
+			this->Localization->Controls->Add(this->Label_PointX);
 			this->Localization->Controls->Add(this->CheckBox_Gradients);
 			this->Localization->Controls->Add(this->ButtonLocalize);
 			this->Localization->Controls->Add(this->GroupBox_SnakeParameters);
@@ -1533,37 +1506,37 @@ private: System::ComponentModel::IContainer^  components;
 			this->CheckBox_Localization->UseVisualStyleBackColor = true;
 			this->CheckBox_Localization->CheckedChanged += gcnew System::EventHandler(this, &MainForm::CheckBox_Localization_CheckedChanged);
 			// 
-			// YPoint_TextBox
+			// TextBox_PointY
 			// 
-			this->YPoint_TextBox->Location = System::Drawing::Point(298, 525);
-			this->YPoint_TextBox->Name = L"YPoint_TextBox";
-			this->YPoint_TextBox->Size = System::Drawing::Size(100, 22);
-			this->YPoint_TextBox->TabIndex = 10;
+			this->TextBox_PointY->Location = System::Drawing::Point(298, 527);
+			this->TextBox_PointY->Name = L"TextBox_PointY";
+			this->TextBox_PointY->Size = System::Drawing::Size(100, 22);
+			this->TextBox_PointY->TabIndex = 10;
 			// 
-			// XPoint_TextBox
+			// TextBox_PointX
 			// 
-			this->XPoint_TextBox->Location = System::Drawing::Point(298, 490);
-			this->XPoint_TextBox->Name = L"XPoint_TextBox";
-			this->XPoint_TextBox->Size = System::Drawing::Size(100, 22);
-			this->XPoint_TextBox->TabIndex = 9;
+			this->TextBox_PointX->Location = System::Drawing::Point(298, 492);
+			this->TextBox_PointX->Name = L"TextBox_PointX";
+			this->TextBox_PointX->Size = System::Drawing::Size(100, 22);
+			this->TextBox_PointX->TabIndex = 9;
 			// 
-			// YPoint_Label
+			// Label_PointY
 			// 
-			this->YPoint_Label->AutoSize = true;
-			this->YPoint_Label->Location = System::Drawing::Point(173, 528);
-			this->YPoint_Label->Name = L"YPoint_Label";
-			this->YPoint_Label->Size = System::Drawing::Size(125, 17);
-			this->YPoint_Label->TabIndex = 8;
-			this->YPoint_Label->Text = L"Текущая точка Y:";
+			this->Label_PointY->AutoSize = true;
+			this->Label_PointY->Location = System::Drawing::Point(173, 528);
+			this->Label_PointY->Name = L"Label_PointY";
+			this->Label_PointY->Size = System::Drawing::Size(125, 17);
+			this->Label_PointY->TabIndex = 8;
+			this->Label_PointY->Text = L"Текущая точка Y:";
 			// 
-			// XPoint_Label
+			// Label_PointX
 			// 
-			this->XPoint_Label->AutoSize = true;
-			this->XPoint_Label->Location = System::Drawing::Point(173, 493);
-			this->XPoint_Label->Name = L"XPoint_Label";
-			this->XPoint_Label->Size = System::Drawing::Size(125, 17);
-			this->XPoint_Label->TabIndex = 7;
-			this->XPoint_Label->Text = L"Текущая точка X:";
+			this->Label_PointX->AutoSize = true;
+			this->Label_PointX->Location = System::Drawing::Point(173, 493);
+			this->Label_PointX->Name = L"Label_PointX";
+			this->Label_PointX->Size = System::Drawing::Size(125, 17);
+			this->Label_PointX->TabIndex = 7;
+			this->Label_PointX->Text = L"Текущая точка X:";
 			// 
 			// CheckBox_Gradients
 			// 
@@ -1701,6 +1674,14 @@ private: System::ComponentModel::IContainer^  components;
 			// Reconstruction
 			// 
 			this->Reconstruction->BackColor = System::Drawing::SystemColors::Control;
+			this->Reconstruction->Controls->Add(this->Label_MinVoxelsDensity);
+			this->Reconstruction->Controls->Add(this->TrackBar_MinVoxelsDensity);
+			this->Reconstruction->Controls->Add(this->Label_StepZ);
+			this->Reconstruction->Controls->Add(this->TrackBar_MeshStepZ);
+			this->Reconstruction->Controls->Add(this->Label_StepY);
+			this->Reconstruction->Controls->Add(this->TrackBar_MeshStepY);
+			this->Reconstruction->Controls->Add(this->Label_StepX);
+			this->Reconstruction->Controls->Add(this->TrackBar_MeshStepX);
 			this->Reconstruction->Controls->Add(this->CheckBox_Reconstruction);
 			this->Reconstruction->Controls->Add(this->ButtonReconstructionData);
 			this->Reconstruction->Controls->Add(this->ButtonReconstructionSegments);
@@ -1710,10 +1691,93 @@ private: System::ComponentModel::IContainer^  components;
 			this->Reconstruction->TabIndex = 2;
 			this->Reconstruction->Text = L"3D-реконструкция";
 			// 
+			// Label_MinVoxelsDensity
+			// 
+			this->Label_MinVoxelsDensity->AutoSize = true;
+			this->Label_MinVoxelsDensity->Enabled = false;
+			this->Label_MinVoxelsDensity->Location = System::Drawing::Point(12, 196);
+			this->Label_MinVoxelsDensity->Name = L"Label_MinVoxelsDensity";
+			this->Label_MinVoxelsDensity->Size = System::Drawing::Size(303, 17);
+			this->Label_MinVoxelsDensity->TabIndex = 11;
+			this->Label_MinVoxelsDensity->Text = L"Минимальная плотность видимых вокселов: ";
+			// 
+			// TrackBar_MinVoxelsDensity
+			// 
+			this->TrackBar_MinVoxelsDensity->Enabled = false;
+			this->TrackBar_MinVoxelsDensity->Location = System::Drawing::Point(334, 190);
+			this->TrackBar_MinVoxelsDensity->Maximum = 100;
+			this->TrackBar_MinVoxelsDensity->Name = L"TrackBar_MinVoxelsDensity";
+			this->TrackBar_MinVoxelsDensity->Size = System::Drawing::Size(198, 56);
+			this->TrackBar_MinVoxelsDensity->TabIndex = 10;
+			this->TrackBar_MinVoxelsDensity->ValueChanged += gcnew System::EventHandler(this, &MainForm::TrackBar_MinVoxelsDensity_ValueChanged);
+			// 
+			// Label_StepZ
+			// 
+			this->Label_StepZ->AutoSize = true;
+			this->Label_StepZ->Enabled = false;
+			this->Label_StepZ->Location = System::Drawing::Point(38, 133);
+			this->Label_StepZ->Name = L"Label_StepZ";
+			this->Label_StepZ->Size = System::Drawing::Size(110, 17);
+			this->Label_StepZ->TabIndex = 9;
+			this->Label_StepZ->Text = L"Шаг сетки по Z:";
+			// 
+			// TrackBar_MeshStepZ
+			// 
+			this->TrackBar_MeshStepZ->Enabled = false;
+			this->TrackBar_MeshStepZ->Location = System::Drawing::Point(166, 128);
+			this->TrackBar_MeshStepZ->Minimum = 1;
+			this->TrackBar_MeshStepZ->Name = L"TrackBar_MeshStepZ";
+			this->TrackBar_MeshStepZ->Size = System::Drawing::Size(266, 56);
+			this->TrackBar_MeshStepZ->TabIndex = 8;
+			this->TrackBar_MeshStepZ->Value = 1;
+			this->TrackBar_MeshStepZ->ValueChanged += gcnew System::EventHandler(this, &MainForm::TrackBar_MeshStepZ_ValueChanged);
+			// 
+			// Label_StepY
+			// 
+			this->Label_StepY->AutoSize = true;
+			this->Label_StepY->Enabled = false;
+			this->Label_StepY->Location = System::Drawing::Point(38, 83);
+			this->Label_StepY->Name = L"Label_StepY";
+			this->Label_StepY->Size = System::Drawing::Size(110, 17);
+			this->Label_StepY->TabIndex = 7;
+			this->Label_StepY->Text = L"Шаг сетки по Y:";
+			// 
+			// TrackBar_MeshStepY
+			// 
+			this->TrackBar_MeshStepY->Enabled = false;
+			this->TrackBar_MeshStepY->Location = System::Drawing::Point(166, 78);
+			this->TrackBar_MeshStepY->Minimum = 1;
+			this->TrackBar_MeshStepY->Name = L"TrackBar_MeshStepY";
+			this->TrackBar_MeshStepY->Size = System::Drawing::Size(266, 56);
+			this->TrackBar_MeshStepY->TabIndex = 6;
+			this->TrackBar_MeshStepY->Value = 1;
+			this->TrackBar_MeshStepY->ValueChanged += gcnew System::EventHandler(this, &MainForm::TrackBar_MeshStepY_ValueChanged);
+			// 
+			// Label_StepX
+			// 
+			this->Label_StepX->AutoSize = true;
+			this->Label_StepX->Enabled = false;
+			this->Label_StepX->Location = System::Drawing::Point(38, 31);
+			this->Label_StepX->Name = L"Label_StepX";
+			this->Label_StepX->Size = System::Drawing::Size(110, 17);
+			this->Label_StepX->TabIndex = 5;
+			this->Label_StepX->Text = L"Шаг сетки по X:";
+			// 
+			// TrackBar_MeshStepX
+			// 
+			this->TrackBar_MeshStepX->Enabled = false;
+			this->TrackBar_MeshStepX->Location = System::Drawing::Point(166, 25);
+			this->TrackBar_MeshStepX->Minimum = 1;
+			this->TrackBar_MeshStepX->Name = L"TrackBar_MeshStepX";
+			this->TrackBar_MeshStepX->Size = System::Drawing::Size(266, 56);
+			this->TrackBar_MeshStepX->TabIndex = 4;
+			this->TrackBar_MeshStepX->Value = 1;
+			this->TrackBar_MeshStepX->ValueChanged += gcnew System::EventHandler(this, &MainForm::TrackBar_MeshStepX_ValueChanged);
+			// 
 			// CheckBox_Reconstruction
 			// 
 			this->CheckBox_Reconstruction->AutoSize = true;
-			this->CheckBox_Reconstruction->Location = System::Drawing::Point(98, 128);
+			this->CheckBox_Reconstruction->Location = System::Drawing::Point(98, 364);
 			this->CheckBox_Reconstruction->Name = L"CheckBox_Reconstruction";
 			this->CheckBox_Reconstruction->Size = System::Drawing::Size(295, 21);
 			this->CheckBox_Reconstruction->TabIndex = 3;
@@ -1724,7 +1788,7 @@ private: System::ComponentModel::IContainer^  components;
 			// ButtonReconstructionData
 			// 
 			this->ButtonReconstructionData->Enabled = false;
-			this->ButtonReconstructionData->Location = System::Drawing::Point(127, 21);
+			this->ButtonReconstructionData->Location = System::Drawing::Point(127, 257);
 			this->ButtonReconstructionData->Name = L"ButtonReconstructionData";
 			this->ButtonReconstructionData->Size = System::Drawing::Size(236, 38);
 			this->ButtonReconstructionData->TabIndex = 1;
@@ -1735,12 +1799,13 @@ private: System::ComponentModel::IContainer^  components;
 			// ButtonReconstructionSegments
 			// 
 			this->ButtonReconstructionSegments->Enabled = false;
-			this->ButtonReconstructionSegments->Location = System::Drawing::Point(128, 71);
+			this->ButtonReconstructionSegments->Location = System::Drawing::Point(128, 307);
 			this->ButtonReconstructionSegments->Name = L"ButtonReconstructionSegments";
 			this->ButtonReconstructionSegments->Size = System::Drawing::Size(236, 40);
 			this->ButtonReconstructionSegments->TabIndex = 2;
 			this->ButtonReconstructionSegments->Text = L"Реконструкция сегментов";
 			this->ButtonReconstructionSegments->UseVisualStyleBackColor = true;
+			this->ButtonReconstructionSegments->Click += gcnew System::EventHandler(this, &MainForm::ButtonReconstructionSegments_Click);
 			// 
 			// MainForm
 			// 
@@ -1802,6 +1867,10 @@ private: System::ComponentModel::IContainer^  components;
 			this->Segmentation->ResumeLayout(false);
 			this->Reconstruction->ResumeLayout(false);
 			this->Reconstruction->PerformLayout();
+			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->TrackBar_MinVoxelsDensity))->EndInit();
+			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->TrackBar_MeshStepZ))->EndInit();
+			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->TrackBar_MeshStepY))->EndInit();
+			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->TrackBar_MeshStepX))->EndInit();
 			this->ResumeLayout(false);
 			this->PerformLayout();
 
@@ -1901,9 +1970,9 @@ private: System::ComponentModel::IContainer^  components;
 					int RazmY_By_N=qw->razm_y*N;
 					int RazmZ_By_N=qw->razm_z*N;
 
-					int HalfCountX=InputData->sizeX/(2*qw->STEP);
-					int HalfCountY=InputData->sizeY/(2*qw->STEP);
-					int HalfCountZ=InputData->sizeZ/(2*qw->STEP);
+					int HalfCountX=InputData->sizeX/(2*qw->STEP_X);
+					int HalfCountY=InputData->sizeY/(2*qw->STEP_Y);
+					int HalfCountZ=InputData->sizeZ/(2*qw->STEP_Z);
 
 		 
 				    glMatrixMode(GL_MODELVIEW);
@@ -1933,8 +2002,7 @@ private: System::ComponentModel::IContainer^  components;
 				  else 
 				  {
 
-				  
-
+				 
 			   GLenum target = RadioButtonTextures_3D->Checked ? GL_TEXTURE_3D : GL_TEXTURE_2D;
 			   glColor4f(BrightnessMult / (float)(TrackBar_BrightnessMult->Maximum), BrightnessMult / (float)(TrackBar_BrightnessMult->Maximum), BrightnessMult / (float)(TrackBar_BrightnessMult->Maximum), 1.0f);
 
@@ -2241,14 +2309,18 @@ private: System::ComponentModel::IContainer^  components;
                 
 			   delete [] VoxelsData; VoxelsData = NULL; VoxelsData = new TVoxel [InputData->TotalSize];
 
+			   delete qw; qw = new ballPivot(InputData);
+
+			   this->TrackBar_MeshStepX->Value = qw->STEP_X;
+			   this->TrackBar_MeshStepY->Value = qw->STEP_Y;
+			   this->TrackBar_MeshStepZ->Value = qw->STEP_Z;
+
+			   this->TrackBar_MinVoxelsDensity->Value = qw->MIN_DENSITY;
+
 			   MaxDensity = 0; MinDensity = UINT::MaxValue;
 
 			   for (size_t i = 0; i < InputData->TotalSize; ++i) 
 			   {
-			   // VoxelsData[i].Color_2D = VoxelsData[i].Color_3D = TColor(0.0f, 0.0f, 0.0f, 0.0f);
-
-			   //	VoxelsData[i].IsVisible_2D = VoxelsData[i].IsVisible_3D = true;
-
                 if (MaxDensity < InputData->data[i]) MaxDensity = InputData->data[i];
 				if (MinDensity > InputData->data[i]) MinDensity = InputData->data[i];
 			   }
@@ -2303,6 +2375,22 @@ private: System::ComponentModel::IContainer^  components;
 			   this->TrackBar_ScaleX->Enabled = true;
 			   this->TrackBar_ScaleY->Enabled = true;
 			   this->TrackBar_ScaleZ->Enabled = true;
+
+			   this->Label_StepX->Enabled = true;
+			   this->Label_StepY->Enabled = true;
+			   this->Label_StepZ->Enabled = true;
+
+			   this->Label_MinVoxelsDensity->Enabled = true;
+
+			   this->TrackBar_MeshStepX->Enabled = true;
+			   this->TrackBar_MeshStepY->Enabled = true;
+			   this->TrackBar_MeshStepZ->Enabled = true;
+
+			   this->TrackBar_MinVoxelsDensity->Enabled = true;
+
+			   qw->STEP_X = this->TrackBar_MeshStepX->Value;
+			   qw->STEP_Y = this->TrackBar_MeshStepY->Value;
+			   qw->STEP_Z = this->TrackBar_MeshStepZ->Value;
 
 			   this->TrackBar_ScaleX->Value = (int)(InputData->scaleX*this->TrackBar_ScaleX->Maximum);
 			   this->TrackBar_ScaleY->Value = (int)(InputData->scaleY*this->TrackBar_ScaleY->Maximum);
@@ -2366,8 +2454,9 @@ private: System::Void GenerateTextures()
 		  GLenum target = is3Dtexture ? GL_TEXTURE_3D : GL_TEXTURE_2D;
 
 		  size_t numLayers = is3Dtexture ? 1 : InputData->sizeZ;
-          float additionalMult = 1.5;
+          float additionalMult = 1.5f;
           if (InputData->sizeZ < 30) additionalMult = 10;
+		  if (MaxDensity == 255) additionalMult = 0.2f;
 		  
 		  for (size_t iLayer = 0; iLayer < numLayers; ++iLayer) 
 		  {
@@ -2383,13 +2472,28 @@ private: System::Void GenerateTextures()
 			  if (this->RadioButton_2D->Checked && Segments_2D)
 			  {
 			   TSegment tmpSegment = Segments_2D[iLayer].at(VoxelsData[reducedIndex].SegmentIndex_2D);
-     		   if (tmpSegment.Visible && (InputData->data[reducedIndex]>=low_density) && (InputData->data[reducedIndex]<=high_density))
+			   if (this->CheckBox_ColorsExport->Checked)
+			   {
+				if (tmpSegment.tmpVisible && (InputData->data[reducedIndex]>=low_density) && (InputData->data[reducedIndex]<=high_density))
+				{
+				 TColor tmpColor = tmpSegment.tmpColor;
+				 tmp[i] = tmpColor.R;
+			     tmp[i+1] = tmpColor.G;
+			     tmp[i+2] = tmpColor.B;
+			     tmp[i+3] = tmpColor.A;
+				}
+				else tmp[i+3] = tmp[i+2] = tmp[i+1] = tmp[i] = 0.0f;
+			   }
+			   else
+			   {if (tmpSegment.Visible && (InputData->data[reducedIndex]>=low_density) && (InputData->data[reducedIndex]<=high_density))
 			   {
 			    TColor tmpColor = tmpSegment.Color;
 			    tmp[i] = tmpColor.R;
 			    tmp[i+1] = tmpColor.G;
 			    tmp[i+2] = tmpColor.B;
 			    tmp[i+3] = tmpColor.A;
+			   }
+			   else tmp[i+3] = tmp[i+2] = tmp[i+1] = tmp[i] = 0.0f;
 			   }
 			  }
 			  else if (this->RadioButton_3D->Checked && Segments_3D)
@@ -2403,8 +2507,9 @@ private: System::Void GenerateTextures()
 			    tmp[i+2] = tmpColor.B;
 				tmp[i+3] = tmpColor.A;
 			   }
+			   else tmp[i+3] = tmp[i+2] = tmp[i+1] = tmp[i] = 0.0f;
 			  }
-			  else tmp[i+3] = tmp[i+2] = tmp[i+1] = tmp[i] = 0.0f;
+			 // else tmp[i+3] = tmp[i+2] = tmp[i+1] = tmp[i] = 0.0f;
 			 } 
 			 else tmp[i+3] = tmp[i+2] = tmp[i+1] = tmp[i] = InputData->data[reducedIndex] * 5.0*additionalMult / MaxDensity; 
 			}
@@ -2451,7 +2556,7 @@ private: System::Void GenerateTextures()
                          glBindTexture(target, shaderTexture);
                      }
 
-					 glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+					 
            
                      glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
@@ -2483,12 +2588,12 @@ private: System::Void GenerateTextures()
 
 private: System::Void ToolStripMenuItem_Exit_Click(System::Object^  sender, System::EventArgs^  e) 
 		 {
-			 Close();
+		  Close();
 		 }
-private: System::Void RenderTimer_Tick(System::Object^  sender, System::EventArgs^  e) {
-			 //GenerateTextures();
-			 DrawGLScene();
-			 SwapBuffers(hDC);
+private: System::Void RenderTimer_Tick(System::Object^  sender, System::EventArgs^  e) 
+		 {
+	 	  DrawGLScene();
+		  SwapBuffers(hDC);
 		 }
 private: System::Void MainForm_Resize(System::Object^  sender, System::EventArgs^  e) {
 			 GLsizei height = this->RenderingPanel->Height;
@@ -2531,17 +2636,14 @@ private: System::Void TrackBar_Layers_ValueChanged(System::Object^  sender, Syst
 
 			if (CheckBox_ColorsExport->Checked)
 			{
-			 //TColor tmpColor = VoxelsData[Segments_2D[z].at(index).Index.at(0)+z*InputData->sizeX*InputData->sizeY].Color_2D;
-			 //bool tmpVisible = VoxelsData[Segments_2D[z].at(index).Index.at(0)+z*InputData->sizeX*InputData->sizeY].IsVisible_2D;
-
 			 this->DataGridView_Clusters->Rows[index]->Cells[4]->Value = GetStringOfColor(Segments_2D[z].at(index).tmpColor);
-			 this->DataGridView_Clusters->Rows[index]->Cells[5]->Value = Segments_2D[z].at(index).tmpTransparensy.ToString();
+			 this->DataGridView_Clusters->Rows[index]->Cells[5]->Value = ((uchar)(255*Segments_2D[z].at(index).tmpColor.A)).ToString();
 			 this->DataGridView_Clusters->Rows[index]->Cells[6]->Value = Segments_2D[z].at(index).tmpVisible;
 			}
 			else
 			{
  		     this->DataGridView_Clusters->Rows[index]->Cells[4]->Value = this->GetStringOfColor(Segments_2D[z].at(index).Color);
-			 this->DataGridView_Clusters->Rows[index]->Cells[5]->Value = Segments_2D[z].at(index).tmpTransparensy.ToString();
+			 this->DataGridView_Clusters->Rows[index]->Cells[5]->Value = ((uchar)(255*Segments_2D[z].at(index).Color.A)).ToString();
 		     this->DataGridView_Clusters->Rows[index]->Cells[6]->Value = Segments_2D[z].at(index).Visible;
 			}
 		   }
@@ -2560,10 +2662,8 @@ private: System::Void CheckBoxClusters_Click(System::Object^  sender, System::Ev
 		 }
 private: System::Void Button_Clusterization_Click(System::Object^  sender, System::EventArgs^  e) 
 		 {
-		  //this->StaticDelInst_Visible_2D = gcnew MyVisibleDelegate(this, &MainForm::ChangeVisible_2D);
-		  //this->StaticDelInst_Visible_3D = gcnew MyVisibleDelegate(this, &MainForm::ChangeVisible_3D);
-		  //this->StaticDelInst_Color_2D = gcnew MyColorDelegate(this, &MainForm::ChangeVoxelColor_2D);
-		  //this->StaticDelInst_Color_3D = gcnew MyColorDelegate(this, &MainForm::ChangeVoxelColor_3D);
+		  this->StaticDelInst_SegmentIndex_2D = gcnew MySegmentIndexDelegate(this, &MainForm::ChangeSegmentIndex_2D);
+		  this->StaticDelInst_SegmentIndex_3D = gcnew MySegmentIndexDelegate(this, &MainForm::ChangeSegmentIndex_3D);
 
 		  this->ProgressBar_Layers->Value = 0;
 		  this->ProgressBar_Iterations->Value = 0;
@@ -2616,7 +2716,7 @@ private: System::Void Button_Clusterization_Click(System::Object^  sender, Syste
 			 vector <size_t>::iterator segment_indexes_iter = segment_indexes.begin();
 			 vector <size_t>::iterator segment_indexes_iter_end = segment_indexes.end();
 			 for (; segment_indexes_iter != segment_indexes_iter_end; ++segment_indexes_iter)
-			 VoxelsData[*segment_indexes_iter + z*InputData->sizeX*InputData->sizeY].SegmentIndex_2D = i;
+			 this->StaticDelInst_SegmentIndex_2D(*segment_indexes_iter + z*InputData->sizeX*InputData->sizeY, i);
 
 			 Segments_2D[z].push_back(TSegment()); 
 			 
@@ -2628,29 +2728,11 @@ private: System::Void Button_Clusterization_Click(System::Object^  sender, Syste
 
 			 Segments_2D[z].at(i).Color = TColor(grayIntensity, grayIntensity, grayIntensity, grayIntensity);
 
-			 Segments_2D[z].at(i).Transparensy = (unsigned char)(255*grayIntensity);
-
 			 Segments_2D[z].at(i).Visible = true;
 
 			 Segments_2D[z].at(i).tmpColor = Segments_2D[z].at(i).Color;
-			 Segments_2D[z].at(i).tmpTransparensy = Segments_2D[z].at(i).Transparensy;
-			 Segments_2D[z].at(i).tmpVisible = true;
-
-		     
-			/* vector<size_t>::iterator iter = segment_indexes.begin();
-			 vector<size_t>::iterator _end = segment_indexes.end();
-			 for (; iter!=_end; ++iter) 
-			 {
-			  this->StaticDelInst_Color_2D(*iter+z*InputData->sizeX*InputData->sizeY, TColor(grayIntensity, grayIntensity, grayIntensity, grayIntensity));
-     		 }*/
+			 Segments_2D[z].at(i).tmpVisible = Segments_2D[z].at(i).Visible;
 			} 
-
-			/*for (size_t voxel_index = 0; voxel_index < InputData->sizeX*InputData->sizeY; ++voxel_index)
-		    {
-			 if ((InputData->data[voxel_index+z*InputData->sizeX*InputData->sizeY]<low_density)||
-			     (InputData->data[voxel_index+z*InputData->sizeX*InputData->sizeY]>high_density))
-			 this->StaticDelInst_Visible_2D(voxel_index+z*InputData->sizeX*InputData->sizeY, false);
-		    }*/
 
 			// Отображаем ход выполнения процесса
 			this->ProgressBar_Iterations->Value = z==InputData->sizeZ-1 ? this->ProgressBar_Iterations->Maximum : 0;
@@ -2676,7 +2758,7 @@ private: System::Void Button_Clusterization_Click(System::Object^  sender, Syste
 			this->DataGridView_Clusters->Rows[index]->Cells[2]->Value = Segments_2D[z].at(index).MinDensity.ToString();
 			this->DataGridView_Clusters->Rows[index]->Cells[3]->Value = Segments_2D[z].at(index).MaxDensity.ToString();
 			this->DataGridView_Clusters->Rows[index]->Cells[4]->Value = this->GetStringOfColor(Segments_2D[z].at(index).Color);
-			this->DataGridView_Clusters->Rows[index]->Cells[5]->Value = Segments_2D[z].at(index).Transparensy.ToString();
+			this->DataGridView_Clusters->Rows[index]->Cells[5]->Value = ((uchar)(255*Segments_2D[z].at(index).Color.A)).ToString();
 			this->DataGridView_Clusters->Rows[index]->Cells[6]->Value = Segments_2D[z].at(index).Visible;
 		   }
 
@@ -2690,12 +2772,6 @@ private: System::Void Button_Clusterization_Click(System::Object^  sender, Syste
 		   delete [] Segments_3D; Segments_3D = NULL; 
 		   
 		   Segments_3D = new vector <TSegment> [1];
-
-		   /*for (size_t index = 0; index<InputData->TotalSize; ++index) 
-		   {
-			   VoxelsData[index].Color_3D = TColor(0.0f, 0.0f, 0.0f, 0.0f);			
-			   VoxelsData[index].IsVisible_3D = true;
-		   }*/
 
 		   StartLayerIndex_3D = (size_t)this->NumericUpDown_Start->Value;
 	
@@ -2724,10 +2800,11 @@ private: System::Void Button_Clusterization_Click(System::Object^  sender, Syste
 			vector <size_t>::iterator segment_indexes_iter_end = segment_indexes.end();
 			
 			for (; segment_indexes_iter != segment_indexes_iter_end; ++segment_indexes_iter)
-			VoxelsData[*segment_indexes_iter+StartLayerIndex_3D*InputData->sizeX*InputData->sizeY].SegmentIndex_3D = i;
+			this->StaticDelInst_SegmentIndex_3D(*segment_indexes_iter+StartLayerIndex_3D*InputData->sizeX*InputData->sizeY, i);
 
 			Segments_3D->push_back(TSegment());
 
+			Segments_3D->at(i).Volume = InputData->scaleX*InputData->scaleY*InputData->scaleZ*segment_indexes.size();
 			Segments_3D->at(i).MinDensity = MinDensityOfSegment_3D(StartLayerIndex_3D, i);
 			Segments_3D->at(i).MaxDensity = MaxDensityOfSegment_3D(StartLayerIndex_3D, i);
 			Segments_3D->at(i).Visible = true;
@@ -2735,23 +2812,7 @@ private: System::Void Button_Clusterization_Click(System::Object^  sender, Syste
 			float grayIntensity = (float)(i+1)/NumberOfSegments;
 
 			Segments_3D->at(i).Color = TColor(grayIntensity, grayIntensity, grayIntensity, grayIntensity);
-
-			Segments_3D->at(i).Transparensy = (unsigned char)(255*grayIntensity);
-
-		    /*vector<size_t>::iterator iter = segment_indexes.begin();
-		    vector<size_t>::iterator _end = segment_indexes.end();
-		    for (; iter!=_end; ++iter) 
-		    {
-			 this->StaticDelInst_Color_3D(*iter+StartLayerIndex_3D*InputData->sizeX*InputData->sizeY, TColor(grayIntensity, grayIntensity, grayIntensity, grayIntensity));
-			}*/
-		   }
-
-		   /*for (size_t voxel_index = 0; voxel_index < InputData->TotalSize; ++voxel_index)
-		   {
-			if ((InputData->data[voxel_index]<low_density)||
-			    (InputData->data[voxel_index]>high_density))
-			this->StaticDelInst_Visible_3D(voxel_index, false);
-		   }*/
+	       }
 
 		   this->ProgressBar_Layers->Value = this->ProgressBar_Layers->Maximum;
 
@@ -2770,7 +2831,7 @@ private: System::Void Button_Clusterization_Click(System::Object^  sender, Syste
 			this->DataGridView_Clusters->Rows[index]->Cells[2]->Value = Segments_3D->at(index).MinDensity.ToString();
 			this->DataGridView_Clusters->Rows[index]->Cells[3]->Value = Segments_3D->at(index).MaxDensity.ToString();
 			this->DataGridView_Clusters->Rows[index]->Cells[4]->Value = this->GetStringOfColor(Segments_3D->at(index).Color);
-			this->DataGridView_Clusters->Rows[index]->Cells[5]->Value =	Segments_3D->at(index).Transparensy.ToString(); 
+			this->DataGridView_Clusters->Rows[index]->Cells[5]->Value =	((uchar)(255*Segments_3D->at(index).Color.A)).ToString(); 
 			this->DataGridView_Clusters->Rows[index]->Cells[6]->Value = Segments_3D->at(index).Visible;
 		   }
 
@@ -2819,15 +2880,7 @@ private: System::Void Button_VisualizeSelectedClusters_Click(System::Object^  se
 				
 		   {
 			Segments_2D[z].at(i).Visible = (bool)this->DataGridView_Clusters->Rows[i]->Cells[6]->Value;
-
-			/*vector<size_t>::iterator iter = Segments_2D[z].at(i).Index.begin();
-			vector<size_t>::iterator _end = Segments_2D[z].at(i).Index.end();
-			for (; iter!=_end; ++iter)
-			{
-		 	 if ((bool)this->DataGridView_Clusters->Rows[i]->Cells[6]->Value ==true)
-			 this->StaticDelInst_Visible_2D(*iter+z*InputData->sizeX*InputData->sizeY, true);
-			 else this->StaticDelInst_Visible_2D(*iter+z*InputData->sizeX*InputData->sizeY, false);
-			}*/
+			Segments_2D[z].at(i).tmpVisible = Segments_2D[z].at(i).Visible;
 		   }
 		  }
 
@@ -2836,14 +2889,6 @@ private: System::Void Button_VisualizeSelectedClusters_Click(System::Object^  se
 		   for (size_t i = 0; i<Segments_3D->size(); ++i)
 		   {
 			Segments_3D->at(i).Visible = (bool)this->DataGridView_Clusters->Rows[i]->Cells[6]->Value;
-
-			/*vector <size_t>::iterator iter = Segments_3D->at(i).Index.begin();
-			vector <size_t>::iterator _end = Segments_3D->at(i).Index.end();
-			for (; iter!=_end; ++iter)
-			{
-			 if (*iter+(size_t)StartLayerIndex_3D*InputData->sizeX*InputData->sizeY<InputData->TotalSize)
-			 this->StaticDelInst_Visible_3D(*iter+(size_t)StartLayerIndex_3D*InputData->sizeX*InputData->sizeY, (bool)this->DataGridView_Clusters->Rows[i]->Cells[6]->Value);
-   			}*/
 		   }
 		  }
 
@@ -2908,33 +2953,21 @@ private: System::Void DataGridView_Clusters_CellClick(System::Object^  sender, S
 			   TColor tmpColor = TColor((float)selectedColor.R/255, (float)selectedColor.G/255, (float)selectedColor.B/255, (float)selectedColor.A/255);
 			   this->DataGridView_Clusters->Rows[e->RowIndex]->Cells[4]->Value = this->GetStringOfColor(tmpColor);
 			   this->DataGridView_Clusters->Rows[e->RowIndex]->Cells[5]->Value = selectedColor.A.ToString();
-			   //this-DataGridView_Clusters->Rows[e->RowIndex]->Cells[4]->Style->FieldSetter(L"System::Drawing::Color", L"BackColor", (Object^)selectedColor); 
 
 			   if (this->RadioButton_2D->Checked)
 			   {
 				size_t z = (size_t)this->TrackBar_Layers->Value; 
 			    Segments_2D[z].at(e->RowIndex).Color = tmpColor;
-				Segments_2D[z].at(e->RowIndex).Transparensy = selectedColor.A;
-
-				/*vector<size_t>::iterator iter = Segments_2D[z].at(e->RowIndex).Index.begin();
-				vector<size_t>::iterator _end = Segments_2D[z].at(e->RowIndex).Index.end();
-			    for (; iter!=_end; ++iter)
-			    {
-				 this->StaticDelInst_Color_2D(*iter+z*InputData->sizeX*InputData->sizeY, tmpColor);
-			    }*/
+				Segments_2D[z].at(e->RowIndex).tmpColor = Segments_2D[z].at(e->RowIndex).Color;
+				
 				
 				if (CheckBox_ColorsExport->Checked)
 				{
-				 /*for (size_t layer_index = 0; layer_index < InputData->sizeZ; ++layer_index)
+				 for (size_t layer_index = 0; layer_index < InputData->sizeZ; ++layer_index)
 				 if ((layer_index != z)&&(e->RowIndex < Segments_2D[layer_index].size()))
 				 {
-				  vector <size_t>::iterator iter = Segments_2D[layer_index].at(e->RowIndex).Index.begin();
-				  vector <size_t>::iterator _end = Segments_2D[layer_index].at(e->RowIndex).Index.end();
-				  for (; iter!=_end; ++iter)
-				  {
-				   this->StaticDelInst_Color_2D(*iter+layer_index*InputData->sizeX*InputData->sizeY, tmpColor);
-				  }
-				 }*/
+				  Segments_2D[layer_index].at(e->RowIndex).tmpColor = tmpColor;
+				 }
 				}
 				
 			   }
@@ -2942,15 +2975,6 @@ private: System::Void DataGridView_Clusters_CellClick(System::Object^  sender, S
 			   if (this->RadioButton_3D->Checked)
 			   {
 				Segments_3D->at(e->RowIndex).Color = TColor((float)selectedColor.R/255, (float)selectedColor.G/255, (float)selectedColor.B/255, (float)selectedColor.A/255);
-				Segments_3D->at(e->RowIndex).Transparensy = selectedColor.A;
-
-				/*vector<size_t>::iterator iter = Segments_3D->at(e->RowIndex).Index.begin();
-				vector<size_t>::iterator _end = Segments_3D->at(e->RowIndex).Index.end();
-			    for (; iter!=_end; ++iter)
-			    {
-				 if (*iter+(size_t)StartLayerIndex_3D*InputData->sizeX*InputData->sizeY<InputData->TotalSize)
-				 this->StaticDelInst_Color_3D(*iter+(size_t)StartLayerIndex_3D*InputData->sizeX*InputData->sizeY, tmpColor);
-			    }*/
 			   }
 			  
 			   GenerateTextures();
@@ -2970,25 +2994,16 @@ private: System::Void DataGridView_Clusters_CellValueChanged(System::Object^  se
 			 if (this->RadioButton_2D->Checked)
 			 {
 			  size_t z = (size_t)this->TrackBar_Layers->Value;
+			  
 			  Segments_2D[z].at(index).Visible = (bool)this->DataGridView_Clusters->Rows[index]->Cells[6]->Value;
-			  /*vector <size_t>::iterator iter = Segments_2D[z].at(index).Index.begin();
-			  vector <size_t>::iterator _end = Segments_2D[z].at(index).Index.end();
-			  for (; iter!=_end; ++iter)
-			  {
-			   this->StaticDelInst_Visible_2D(*iter+z*InputData->sizeX*InputData->sizeY, Segments_2D[z].at(index).IsVisible);
-			  }*/
-
+			  Segments_2D[z].at(index).tmpVisible = Segments_2D[z].at(index).Visible;
+			  
 			  if (CheckBox_ColorsExport->Checked)
 			  {
 			   for (size_t layer_index = 0; layer_index < InputData->sizeZ; ++layer_index)
 			   if ((layer_index!=z)&&(index < Segments_2D[layer_index].size()))
 			   {
-			    /*vector <size_t>::iterator iter = Segments_2D[layer_index].at(index).Index.begin();
-			    vector <size_t>::iterator _end = Segments_2D[layer_index].at(index).Index.end();
-			    for (; iter!=_end; ++iter)
-			    {
-				 this->StaticDelInst_Visible_2D(*iter+layer_index*InputData->sizeX*InputData->sizeY, Segments_2D[z].at(index).IsVisible);
-				}*/
+				Segments_2D[layer_index].at(index).tmpVisible = Segments_2D[z].at(index).Visible;
 			   }
 			  }
 					
@@ -2997,14 +3012,6 @@ private: System::Void DataGridView_Clusters_CellValueChanged(System::Object^  se
 			 if (this->RadioButton_3D->Checked)
 			 {
 			  Segments_3D->at(index).Visible = (bool)this->DataGridView_Clusters->Rows[index]->Cells[6]->Value;
-			  /*vector <size_t>::iterator iter = Segments_3D->at(index).Index.begin();
-			  vector <size_t>::iterator _end = Segments_3D->at(index).Index.end();
-			  for (; iter!=_end; ++iter)
-			  {
-			   if (*iter+(size_t)StartLayerIndex_3D*InputData->sizeX*InputData->sizeY<InputData->TotalSize)
-			   this->StaticDelInst_Visible_3D(*iter+(size_t)StartLayerIndex_3D*InputData->sizeX*InputData->sizeY, Segments_3D->at(index).IsVisible);
-			  }*/
-					
 			 }
 				
 			 GenerateTextures();
@@ -3044,49 +3051,29 @@ private: System::Void DataGridView_Clusters_CellEndEdit(System::Object^  sender,
 			 {
 			  size_t z = (size_t)this->TrackBar_Layers->Value;
 
-			  Segments_2D[z].at(index).Transparensy = tmp_value;
+			  Segments_2D[z].at(index).Color.A = (float)tmp_value/255;
+			  Segments_2D[z].at(index).tmpColor.A = Segments_2D[z].at(index).Color.A;
 		   
-			  /*vector<size_t>::iterator iter = Segments_2D[z].at(index).Index.begin();
-		      vector<size_t>::iterator _end = Segments_2D[z].at(index).Index.end();
-			  for (; iter!=_end; ++iter)
-			  {
-			   TColor tmpColor = VoxelsData[*iter+z*InputData->sizeX*InputData->sizeY].Color_2D;
-			   this->StaticDelInst_Color_2D(*iter+z*InputData->sizeX*InputData->sizeY, TColor(tmpColor.R, tmpColor.G, tmpColor.B, (float)tmp_value/255));
-			  }*/
-
 			  if (CheckBox_ColorsExport->Checked)
 			  {
-			   /* for (size_t layer_index = 0; layer_index < InputData->sizeZ; ++layer_index)
+			   for (size_t layer_index = 0; layer_index < InputData->sizeZ; ++layer_index)
 			   if ((layer_index != z)&&(index < Segments_2D[layer_index].size()))
 			   {
-				vector <size_t>::iterator iter = Segments_2D[layer_index].at(index).Index.begin();
-				vector <size_t>::iterator _end = Segments_2D[layer_index].at(index).Index.end();
-				for (; iter!=_end; ++iter)
-				{
-				 TColor tmpColor = VoxelsData[*iter+layer_index*InputData->sizeX*InputData->sizeY].Color_2D;
-				 this->StaticDelInst_Color_2D(*iter+layer_index*InputData->sizeX*InputData->sizeY, TColor(tmpColor.R, tmpColor.G, tmpColor.B, (float)tmp_value/255));
-				}
-			   } */
+				Segments_2D[layer_index].at(index).tmpColor.A = (float)tmp_value/255;
+			   } 
 			  }
 			  
-			  GenerateTextures();
+			  
 			 }
 
 			  if (this->RadioButton_3D->Checked)
 			  {
-			   Segments_3D->at(index).Transparensy = tmp_value;
-			   /*vector<size_t>::iterator iter = Segments_3D->at(index).Index.begin();
-			   vector<size_t>::iterator _end = Segments_3D->at(index).Index.end();
-			   for (; iter!=_end; ++iter)
-			   if (*iter+(size_t)StartLayerIndex_3D*InputData->sizeX*InputData->sizeY<InputData->TotalSize)
-			   {
-				TColor tmpColor = VoxelsData[*iter+(size_t)StartLayerIndex_3D*InputData->sizeX*InputData->sizeY].Color_3D;
-				
-				this->StaticDelInst_Color_3D(*iter+(size_t)StartLayerIndex_3D*InputData->sizeX*InputData->sizeY, TColor(tmpColor.R, tmpColor.G, tmpColor.B, (float)tmp_value/255));
-			   }*/
-
-			   GenerateTextures();
+			   Segments_3D->at(index).Color.A = (float)tmp_value/255;
+			   
+			   
 			  }
+
+			  GenerateTextures();
 			  
 			}
 		 }
@@ -3122,21 +3109,19 @@ private: System::Void CheckBox_ColorsExport_CheckedChanged(System::Object^  send
 				 {
 				  size_t z = (size_t)this->TrackBar_Layers->Value;
 
+				  for (size_t i = 0; i < Segments_2D[z].size(); ++i)
+				  {
+				   Segments_2D[z].at(i).tmpColor = Segments_2D[z].at(i).Color;
+				   Segments_2D[z].at(i).tmpVisible = Segments_2D[z].at(i).Visible;
+				  }
+
 				  for (size_t layer_index = 0; layer_index < InputData->sizeZ; ++layer_index)
 				  if (layer_index!=z)
 				  {
 				   for (size_t i = 0; i < min(Segments_2D[layer_index].size(), Segments_2D[z].size()); ++i)
 				   {
-				    TColor tmpColor = Segments_2D[z].at(i).Color;
-
-					/*vector <size_t>::iterator iter = Segments_2D[layer_index].at(i).Index.begin();
-					vector <size_t>::iterator _end = Segments_2D[layer_index].at(i).Index.end();
-					for(; iter!=_end; ++iter)
-					{
-					 this->StaticDelInst_Color_2D(*iter+layer_index*InputData->sizeX*InputData->sizeY, 
-					 TColor(tmpColor.R, tmpColor.G, tmpColor.B, (float)Segments_2D[z].at(i).transparensy/255));
-					 this->StaticDelInst_Visible_2D(*iter+layer_index*InputData->sizeX*InputData->sizeY, Segments_2D[z].at(i).IsVisible);
-					}*/
+				    Segments_2D[layer_index].at(i).tmpColor = Segments_2D[z].at(i).Color;
+					Segments_2D[layer_index].at(i).tmpVisible = Segments_2D[z].at(i).Visible;
 				   }
   				  }
 
@@ -3145,22 +3130,14 @@ private: System::Void CheckBox_ColorsExport_CheckedChanged(System::Object^  send
 
 				 case false:
 				 {
-			      for (size_t z = 0; z < InputData->sizeZ; ++z)
-				  {
-				   for (size_t i = 0; i < Segments_2D[z].size(); ++i)
-				   {
-				    TColor tmpColor = Segments_2D[z].at(i).Color;
+				  size_t z = (size_t)this->TrackBar_Layers->Value;
 
-					/*vector <size_t>::iterator iter = Segments_2D[z].at(i).Index.begin();
-					vector <size_t>::iterator _end = Segments_2D[z].at(i).Index.end();
-					for(; iter!=_end; ++iter)
-					{
-					 this->StaticDelInst_Color_2D(*iter+z*InputData->sizeX*InputData->sizeY, 
-					 TColor(tmpColor.R, tmpColor.G, tmpColor.B, (float)Segments_2D[z].at(i).transparensy/255));
-					 this->StaticDelInst_Visible_2D(*iter+z*InputData->sizeX*InputData->sizeY, Segments_2D[z].at(i).IsVisible);
-					}*/
-				   }
-  				  }
+				  for (size_t index = 0; index < Segments_2D[z].size(); ++index)
+				  {
+				   this->DataGridView_Clusters->Rows[index]->Cells[4]->Value = this->GetStringOfColor(Segments_2D[z].at(index).Color);
+				   this->DataGridView_Clusters->Rows[index]->Cells[5]->Value = ((uchar)(255*Segments_2D[z].at(index).Color.A)).ToString();
+				   this->DataGridView_Clusters->Rows[index]->Cells[6]->Value = Segments_2D[z].at(index).Visible;
+				  }
 
 				  break;
 				 }
@@ -3182,21 +3159,19 @@ private: System::Void CheckBox_ColorsExport_Click(System::Object^  sender, Syste
 				 {
 				  size_t z = (size_t)this->TrackBar_Layers->Value;
 
+				  for (size_t i = 0; i < Segments_2D[z].size(); ++i)
+				  {
+				   Segments_2D[z].at(i).tmpColor = Segments_2D[z].at(i).Color;
+				   Segments_2D[z].at(i).tmpVisible = Segments_2D[z].at(i).Visible;
+				  }
+
 				  for (size_t layer_index = 0; layer_index < InputData->sizeZ; ++layer_index)
 				  if (layer_index!=z)
 				  {
 				   for (size_t i = 0; i < min(Segments_2D[layer_index].size(), Segments_2D[z].size()); ++i)
 				   {
-				    TColor tmpColor = Segments_2D[z].at(i).Color;
-
-					/*vector <size_t>::iterator iter = Segments_2D[layer_index].at(i).Index.begin();
-					vector <size_t>::iterator _end = Segments_2D[layer_index].at(i).Index.end();
-					for(; iter!=_end; ++iter)
-					{
-					 this->StaticDelInst_Color_2D(*iter+layer_index*InputData->sizeX*InputData->sizeY, 
-					 TColor(tmpColor.R, tmpColor.G, tmpColor.B, (float)Segments_2D[z].at(i).transparensy/255));
-					 this->StaticDelInst_Visible_2D(*iter+layer_index*InputData->sizeX*InputData->sizeY, Segments_2D[z].at(i).IsVisible);
-					}*/
+				    Segments_2D[layer_index].at(i).tmpColor = Segments_2D[z].at(i).Color;
+					Segments_2D[layer_index].at(i).tmpVisible = Segments_2D[z].at(i).Visible;
 				   }
   				  }
 
@@ -3205,22 +3180,14 @@ private: System::Void CheckBox_ColorsExport_Click(System::Object^  sender, Syste
 
 				 case false:
 				 {
-			      for (size_t z = 0; z < InputData->sizeZ; ++z)
-				  {
-				   for (size_t i = 0; i < Segments_2D[z].size(); ++i)
-				   {
-				    TColor tmpColor = Segments_2D[z].at(i).Color;
+				  size_t z = (size_t)this->TrackBar_Layers->Value;
 
-					/*vector <size_t>::iterator iter = Segments_2D[z].at(i).Index.begin();
-					vector <size_t>::iterator _end = Segments_2D[z].at(i).Index.end();
-					for(; iter!=_end; ++iter)
-					{
-					 this->StaticDelInst_Color_2D(*iter+z*InputData->sizeX*InputData->sizeY, 
-					 TColor(tmpColor.R, tmpColor.G, tmpColor.B, (float)Segments_2D[z].at(i).transparensy/255));
-					 this->StaticDelInst_Visible_2D(*iter+z*InputData->sizeX*InputData->sizeY, Segments_2D[z].at(i).IsVisible);
-					}*/
-				   }
-  				  }
+				  for (size_t index = 0; index < Segments_2D[z].size(); ++index)
+				  {
+				   this->DataGridView_Clusters->Rows[index]->Cells[4]->Value = this->GetStringOfColor(Segments_2D[z].at(index).Color);
+				   this->DataGridView_Clusters->Rows[index]->Cells[5]->Value = ((uchar)(255*Segments_2D[z].at(index).Color.A)).ToString();
+				   this->DataGridView_Clusters->Rows[index]->Cells[6]->Value = Segments_2D[z].at(index).Visible;
+				  }
 
 				  break;
 				 }
@@ -3392,6 +3359,9 @@ private: System::Void RenderingPanel_PreviewKeyDown(System::Object^  sender, Sys
 		 {
 		  delete qw;
 		  qw = new ballPivot(InputData);
+		  qw->STEP_X = this->TrackBar_MeshStepX->Value;
+		  qw->STEP_Y = this->TrackBar_MeshStepY->Value;
+		  qw->STEP_Z = this->TrackBar_MeshStepZ->Value;
 		  qw->buildMesh();
 		 }
 private: System::Void RadioButtonTextures_2D_CheckedChanged(System::Object^  sender, System::EventArgs^  e) 
@@ -3479,11 +3449,8 @@ private: System::Void RadioButton_2D_CheckedChanged(System::Object^  sender, Sys
 			 
 			 if (CheckBox_ColorsExport->Checked)
 			 {
-			  // TColor tmpColor = VoxelsData[Segments_2D[z].at(index).Index.at(0)+z*InputData->sizeX*InputData->sizeY].Color_2D;
-			  // bool tmpVisible = VoxelsData[Segments_2D[z].at(index).Index.at(0)+z*InputData->sizeX*InputData->sizeY].IsVisible_2D;
-
 			  this->DataGridView_Clusters->Rows[index]->Cells[4]->Value = GetStringOfColor(Segments_2D[z].at(index).tmpColor);
-			  this->DataGridView_Clusters->Rows[index]->Cells[5]->Value = Segments_2D[z].at(index).tmpTransparensy.ToString();
+			  this->DataGridView_Clusters->Rows[index]->Cells[5]->Value = ((uchar)(255*Segments_2D[z].at(index).tmpColor.A)).ToString();
 			  this->DataGridView_Clusters->Rows[index]->Cells[6]->Value = Segments_2D[z].at(index).tmpVisible;
 			 }
 
@@ -3491,7 +3458,7 @@ private: System::Void RadioButton_2D_CheckedChanged(System::Object^  sender, Sys
 
 			 { 
 			  this->DataGridView_Clusters->Rows[index]->Cells[4]->Value = GetStringOfColor(Segments_2D[z].at(index).Color);
-			  this->DataGridView_Clusters->Rows[index]->Cells[5]->Value = Segments_2D[z].at(index).Transparensy.ToString();
+			  this->DataGridView_Clusters->Rows[index]->Cells[5]->Value = ((uchar)(255*Segments_2D[z].at(index).Color.A)).ToString();
 			  this->DataGridView_Clusters->Rows[index]->Cells[6]->Value = Segments_2D[z].at(index).Visible;
 			 }
 			} 
@@ -3546,7 +3513,7 @@ private: System::Void RadioButton_3D_CheckedChanged(System::Object^  sender, Sys
 			    this->DataGridView_Clusters->Rows[index]->Cells[2]->Value = Segments_3D->at(index).MinDensity.ToString();
 			    this->DataGridView_Clusters->Rows[index]->Cells[3]->Value = Segments_3D->at(index).MaxDensity.ToString();
                 this->DataGridView_Clusters->Rows[index]->Cells[4]->Value = this->GetStringOfColor(Segments_3D->at(index).Color);
-			    this->DataGridView_Clusters->Rows[index]->Cells[5]->Value = Segments_3D->at(index).Transparensy.ToString();
+				this->DataGridView_Clusters->Rows[index]->Cells[5]->Value = ((uchar)(255*Segments_3D->at(index).Color.A)).ToString();
 			    this->DataGridView_Clusters->Rows[index]->Cells[6]->Value = Segments_3D->at(index).Visible; 
 			   }
 
@@ -3919,7 +3886,7 @@ private: System::Void ButtonLocalize_Click(System::Object^  sender, System::Even
 
 		  Snake->FixParams(layerTextures[TrackBar_Layers->Value], 512,512,4, sparams);
 				 
-		  Snake->AddSeed(Int32::Parse(XPoint_TextBox->Text), Int32::Parse(YPoint_TextBox->Text));
+		  Snake->AddSeed(Int32::Parse(TextBox_PointX->Text), Int32::Parse(TextBox_PointY->Text));
 
 		  for (int i=0; i<TrackBar_IterationsNumber->Value; i++) Snake->Iterate();
 
@@ -3980,6 +3947,7 @@ private: System::Void CheckBox_Reconstruction_CheckedChanged(System::Object^  se
 		  this->CheckBox_Gradients->Checked = !this->CheckBox_Reconstruction->Checked&&this->CheckBox_Gradients->Checked;
 		  this->CheckBox_Localization->Checked = !this->CheckBox_Reconstruction->Checked&&this->CheckBox_Localization->Checked;
 		  this->CheckBoxClusters->Checked = !this->CheckBox_Reconstruction->Checked&&this->CheckBoxClusters->Checked;
+		  if (!this->CheckBox_Reconstruction->Checked) distance_z = 100.0f;
 		 }
 private: System::Void CheckBox_Gradients_CheckedChanged(System::Object^  sender, System::EventArgs^  e) 
 		 {
@@ -3993,7 +3961,38 @@ private: System::Void CheckBox_Localization_CheckedChanged(System::Object^  send
           this->CheckBoxClusters->Checked = !this->CheckBox_Localization->Checked&&this->CheckBoxClusters->Checked;
 		  this->CheckBox_Reconstruction->Checked = !this->CheckBox_Localization->Checked&&this->CheckBox_Reconstruction->Checked;
 		 }
+private: System::Void TrackBar_MeshStepX_ValueChanged(System::Object^  sender, System::EventArgs^  e) 
+		 {
+		  qw->STEP_X = this->TrackBar_MeshStepX->Value;
+		  this->Label_StepX->Text = L"Шаг сетки по X: " + qw->STEP_X.ToString();
+		 }
+private: System::Void TrackBar_MeshStepY_ValueChanged(System::Object^  sender, System::EventArgs^  e) 
+		 {
+		  qw->STEP_Y = this->TrackBar_MeshStepY->Value;
+		  this->Label_StepY->Text = L"Шаг сетки по Y: " + qw->STEP_Y.ToString();
+		 }
+private: System::Void TrackBar_MeshStepZ_ValueChanged(System::Object^  sender, System::EventArgs^  e) 
+		 {
+		  qw->STEP_Z = this->TrackBar_MeshStepZ->Value;
+		  this->Label_StepZ->Text = L"Шаг сетки по Z: " + qw->STEP_Z.ToString();
+		 }
+private: System::Void TrackBar_MinVoxelsDensity_ValueChanged(System::Object^  sender, System::EventArgs^  e) 
+		 {
+		  qw->MIN_DENSITY = this->TrackBar_MinVoxelsDensity->Value;
+		  this->Label_MinVoxelsDensity->Text = L"Минимальная плотность видимых вокселов: " + qw->MIN_DENSITY.ToString();
+		 }
+private: System::Void ButtonReconstructionSegments_Click(System::Object^  sender, System::EventArgs^  e) 
+		 {
+		  
+			if (Segments_3D)
+			{
+			 
+				for (int i = 0; i < Segments_3D->size(); ++i)
+				{
+				 
+				}
+			}
+
+		 }
 };
 }
-
-

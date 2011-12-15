@@ -47,6 +47,12 @@ class ScanData
 		
 };
 
+struct TVoxelsData					// общая структура для хранения всей информации о вокселах - набросок
+{
+ size_t SizeX, SizeY, SizeZ;		// размеры вдоль координатных осей
+ float ScaleX, ScaleY, ScaleZ;		// масштабы вдоль координатных осей
+};
+
 namespace surface_reconstruction {
 
 	public delegate void SetScanData(ScanData* sData);
