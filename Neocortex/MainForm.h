@@ -1715,7 +1715,7 @@ private: System::ComponentModel::IContainer^  components;
 			// 
 			this->Label_StepZ->AutoSize = true;
 			this->Label_StepZ->Enabled = false;
-			this->Label_StepZ->Location = System::Drawing::Point(38, 133);
+			this->Label_StepZ->Location = System::Drawing::Point(72, 130);
 			this->Label_StepZ->Name = L"Label_StepZ";
 			this->Label_StepZ->Size = System::Drawing::Size(110, 17);
 			this->Label_StepZ->TabIndex = 9;
@@ -1724,7 +1724,7 @@ private: System::ComponentModel::IContainer^  components;
 			// TrackBar_MeshStepZ
 			// 
 			this->TrackBar_MeshStepZ->Enabled = false;
-			this->TrackBar_MeshStepZ->Location = System::Drawing::Point(166, 128);
+			this->TrackBar_MeshStepZ->Location = System::Drawing::Point(200, 125);
 			this->TrackBar_MeshStepZ->Minimum = 1;
 			this->TrackBar_MeshStepZ->Name = L"TrackBar_MeshStepZ";
 			this->TrackBar_MeshStepZ->Size = System::Drawing::Size(266, 56);
@@ -1736,7 +1736,7 @@ private: System::ComponentModel::IContainer^  components;
 			// 
 			this->Label_StepY->AutoSize = true;
 			this->Label_StepY->Enabled = false;
-			this->Label_StepY->Location = System::Drawing::Point(38, 83);
+			this->Label_StepY->Location = System::Drawing::Point(72, 80);
 			this->Label_StepY->Name = L"Label_StepY";
 			this->Label_StepY->Size = System::Drawing::Size(110, 17);
 			this->Label_StepY->TabIndex = 7;
@@ -1745,7 +1745,7 @@ private: System::ComponentModel::IContainer^  components;
 			// TrackBar_MeshStepY
 			// 
 			this->TrackBar_MeshStepY->Enabled = false;
-			this->TrackBar_MeshStepY->Location = System::Drawing::Point(166, 78);
+			this->TrackBar_MeshStepY->Location = System::Drawing::Point(200, 75);
 			this->TrackBar_MeshStepY->Minimum = 1;
 			this->TrackBar_MeshStepY->Name = L"TrackBar_MeshStepY";
 			this->TrackBar_MeshStepY->Size = System::Drawing::Size(266, 56);
@@ -1757,7 +1757,7 @@ private: System::ComponentModel::IContainer^  components;
 			// 
 			this->Label_StepX->AutoSize = true;
 			this->Label_StepX->Enabled = false;
-			this->Label_StepX->Location = System::Drawing::Point(38, 31);
+			this->Label_StepX->Location = System::Drawing::Point(72, 28);
 			this->Label_StepX->Name = L"Label_StepX";
 			this->Label_StepX->Size = System::Drawing::Size(110, 17);
 			this->Label_StepX->TabIndex = 5;
@@ -1766,7 +1766,7 @@ private: System::ComponentModel::IContainer^  components;
 			// TrackBar_MeshStepX
 			// 
 			this->TrackBar_MeshStepX->Enabled = false;
-			this->TrackBar_MeshStepX->Location = System::Drawing::Point(166, 25);
+			this->TrackBar_MeshStepX->Location = System::Drawing::Point(200, 22);
 			this->TrackBar_MeshStepX->Minimum = 1;
 			this->TrackBar_MeshStepX->Name = L"TrackBar_MeshStepX";
 			this->TrackBar_MeshStepX->Size = System::Drawing::Size(266, 56);
@@ -1777,7 +1777,7 @@ private: System::ComponentModel::IContainer^  components;
 			// CheckBox_Reconstruction
 			// 
 			this->CheckBox_Reconstruction->AutoSize = true;
-			this->CheckBox_Reconstruction->Location = System::Drawing::Point(98, 364);
+			this->CheckBox_Reconstruction->Location = System::Drawing::Point(118, 364);
 			this->CheckBox_Reconstruction->Name = L"CheckBox_Reconstruction";
 			this->CheckBox_Reconstruction->Size = System::Drawing::Size(295, 21);
 			this->CheckBox_Reconstruction->TabIndex = 3;
@@ -1788,7 +1788,7 @@ private: System::ComponentModel::IContainer^  components;
 			// ButtonReconstructionData
 			// 
 			this->ButtonReconstructionData->Enabled = false;
-			this->ButtonReconstructionData->Location = System::Drawing::Point(127, 257);
+			this->ButtonReconstructionData->Location = System::Drawing::Point(144, 257);
 			this->ButtonReconstructionData->Name = L"ButtonReconstructionData";
 			this->ButtonReconstructionData->Size = System::Drawing::Size(236, 38);
 			this->ButtonReconstructionData->TabIndex = 1;
@@ -1799,7 +1799,7 @@ private: System::ComponentModel::IContainer^  components;
 			// ButtonReconstructionSegments
 			// 
 			this->ButtonReconstructionSegments->Enabled = false;
-			this->ButtonReconstructionSegments->Location = System::Drawing::Point(128, 307);
+			this->ButtonReconstructionSegments->Location = System::Drawing::Point(145, 307);
 			this->ButtonReconstructionSegments->Name = L"ButtonReconstructionSegments";
 			this->ButtonReconstructionSegments->Size = System::Drawing::Size(236, 40);
 			this->ButtonReconstructionSegments->TabIndex = 2;
@@ -2681,12 +2681,6 @@ private: System::Void Button_Clusterization_Click(System::Object^  sender, Syste
 		   
 		   Segments_2D = new vector <TSegment> [InputData->sizeZ];
 
-		   /*for (size_t index = 0; index<InputData->TotalSize; ++index) 
-		   {
-			   VoxelsData[index].Color_2D = TColor(0.0f, 0.0f, 0.0f, 0.0f);			
-			   VoxelsData[index].IsVisible_2D = true;
-		   }*/
-
 		   float SumTime = 0.0f;
 				   
 		   for (size_t z = 0; z < InputData->sizeZ; ++z)
@@ -2700,7 +2694,7 @@ private: System::Void Button_Clusterization_Click(System::Object^  sender, Syste
 			ClusterizationMethod->SetClustersNumber(TrackBar_ClustersCount->Value);
 		    ClusterizationMethod->SetCountIterations(TrackBar_IterationsCount->Value);
 						
-			//Label_Status->Text = L"Выполняется сегментация данных. Пожалуйста, подождите...";
+			Label_Status->Text = L"Выполняется сегментация данных. Пожалуйста, подождите...";
 						 
 			vector <vector <size_t> > TmpIndexVector = ClusterizationMethod->GetClusters(this->BackgroundWorker);
 
@@ -2740,9 +2734,9 @@ private: System::Void Button_Clusterization_Click(System::Object^  sender, Syste
 			
 		   }
 
-		   System::Windows::Forms::MessageBox::Show(L"Среднее время сегментации 1 слоя: "+(SumTime/InputData->sizeZ).ToString()+L" с.", L"Процесс сегментации завершён", MessageBoxButtons::OK, MessageBoxIcon::Information, MessageBoxDefaultButton::Button1, MessageBoxOptions::DefaultDesktopOnly, false);
+		   // System::Windows::Forms::MessageBox::Show(L"Среднее время сегментации 1 слоя: "+(SumTime/InputData->sizeZ).ToString()+L" с.", L"Процесс сегментации завершён", MessageBoxButtons::OK, MessageBoxIcon::Information, MessageBoxDefaultButton::Button1, MessageBoxOptions::DefaultDesktopOnly, false);
 		   
-		   Label_Status->Text = L"Данные сегментированы.";
+		   Label_Status->Text = L"Данные сегментированы. Среднее время сегментации 1 слоя: "+(SumTime/InputData->sizeZ).ToString()+L" с.";
 
 		   size_t z = this->TrackBar_Layers->Value;
 
@@ -2786,7 +2780,7 @@ private: System::Void Button_Clusterization_Click(System::Object^  sender, Syste
 		   ClusterizationMethod->SetClustersNumber(this->TrackBar_ClustersCount->Value);
 		   ClusterizationMethod->SetCountIterations(this->TrackBar_IterationsCount->Value);
 
-  		   //Label_Status->Text = L"Выполняется сегментация данных. Пожалуйста, подождите...";
+  		   Label_Status->Text = L"Выполняется сегментация данных. Пожалуйста, подождите...";
 
 		   vector <vector <size_t> > TmpIndexVector = ClusterizationMethod->GetClusters(this->BackgroundWorker);
 
@@ -2816,9 +2810,9 @@ private: System::Void Button_Clusterization_Click(System::Object^  sender, Syste
 
 		   this->ProgressBar_Layers->Value = this->ProgressBar_Layers->Maximum;
 
-		   System::Windows::Forms::MessageBox::Show(L"Общее время сегментации: "+ClusterizationMethod->GetExecutionTime().ToString()+L" с.", L"Процесс сегментации завершён", MessageBoxButtons::OK, MessageBoxIcon::Information, MessageBoxDefaultButton::Button1, MessageBoxOptions::DefaultDesktopOnly, false);
+		   // System::Windows::Forms::MessageBox::Show(L"Общее время сегментации: "+ClusterizationMethod->GetExecutionTime().ToString()+L" с.", L"Процесс сегментации завершён", MessageBoxButtons::OK, MessageBoxIcon::Information, MessageBoxDefaultButton::Button1, MessageBoxOptions::DefaultDesktopOnly, false);
 
-		   Label_Status->Text = L"Данные сегментированы.";
+		   Label_Status->Text = L"Данные сегментированы. Общее время сегментации: "+ClusterizationMethod->GetExecutionTime().ToString()+L" с.";
 
 		   CellValueChanging = false;
 
@@ -3335,8 +3329,8 @@ private: System::Void ToolStripMenuItem_DownloadFolder_Click(System::Object^ sen
 		   distance_x = distance_y = 0.0f;
            distance_z = 600.0f;
 
-		   TextBox_BrightnessMult->Text = L"1,0";
-           BrightnessMult = 1.0f;
+		   TextBox_BrightnessMult->Text = L"30,0";
+           BrightnessMult = 30.0f;
 
 		   StartLayerIndex_3D = 0;
 
@@ -3362,7 +3356,11 @@ private: System::Void RenderingPanel_PreviewKeyDown(System::Object^  sender, Sys
 		  qw->STEP_X = this->TrackBar_MeshStepX->Value;
 		  qw->STEP_Y = this->TrackBar_MeshStepY->Value;
 		  qw->STEP_Z = this->TrackBar_MeshStepZ->Value;
+		  qw->MIN_DENSITY = this->TrackBar_MinVoxelsDensity->Value;
+		  clock_t start = clock();
 		  qw->buildMesh();
+		  clock_t finish = clock();
+		  this->Label_Status->Text = L"Данные реконструированы. Время 3d-реконструкции: "+((float)(finish-start)/CLOCKS_PER_SEC).ToString()+" с.";
 		 }
 private: System::Void RadioButtonTextures_2D_CheckedChanged(System::Object^  sender, System::EventArgs^  e) 
 		 {
@@ -3947,7 +3945,7 @@ private: System::Void CheckBox_Reconstruction_CheckedChanged(System::Object^  se
 		  this->CheckBox_Gradients->Checked = !this->CheckBox_Reconstruction->Checked&&this->CheckBox_Gradients->Checked;
 		  this->CheckBox_Localization->Checked = !this->CheckBox_Reconstruction->Checked&&this->CheckBox_Localization->Checked;
 		  this->CheckBoxClusters->Checked = !this->CheckBox_Reconstruction->Checked&&this->CheckBoxClusters->Checked;
-		  if (!this->CheckBox_Reconstruction->Checked) distance_z = 100.0f;
+		  //if (!this->CheckBox_Reconstruction->Checked) distance_z = 100.0f;
 		 }
 private: System::Void CheckBox_Gradients_CheckedChanged(System::Object^  sender, System::EventArgs^  e) 
 		 {
