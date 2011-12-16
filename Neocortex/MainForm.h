@@ -40,14 +40,6 @@ struct TColor
 
 enum ReconstructionMode {D2, D3};
 
-struct TVoxel							// трёхмерный воксел
-{
- int SegmentIndex_2D, SegmentIndex_3D;  // индексы сегментов, которым принадлежат вокселы
-
- // Конструктор по умолчанию
- TVoxel(): SegmentIndex_2D(-1), SegmentIndex_3D(-1) {};
-};
-
 struct TSegment					// сегмент из вокселов
 {
  float Volume;					// объём сегмента
@@ -65,6 +57,17 @@ struct TSegment					// сегмент из вокселов
 	         Color(TColor(0.0f, 0.0f, 0.0f, 0.0f)), Visible(false), 
 			 tmpColor(TColor(0.0f, 0.0f, 0.0f, 0.0f)), tmpVisible(false) {};
  
+};
+
+struct TVolumeSegment			// объёмный реконструируемый сегмент
+{
+ ballPivot object;				// объект для построения сетки
+ TColor color;					// цвет сегмента
+ bool visible;					// атрибут видимости
+
+ TVolumeSegment() {object = ballPivot();};
+ // TVolumeSegment(): object(ballPivot(new ScanData(), 0, 0, 0, 0.0f)), color(TColor(0.0f, 0.0f, 0.0f, 0.0f)), visible(true) {}; 
+ // TVolumeSegment(ballPivot bp, TColor _color, bool _visible): object(bp), color(_color), visible(_visible) {};
 };
 
 namespace Neocortex 
@@ -152,12 +155,16 @@ namespace Neocortex
 		vector <WCHAR*> *StrFiles;					// список файлов слоёв
 		ScanData* InputData;						// исходные данные
 		KmeansMethod* ClusterizationMethod;			// метод, используемый для кластеризации
-		TVoxel* VoxelsData;							// массив трёхмерных вокселов с атрибутами
+		TVoxelSegments* VoxelsData;					// массив трёхмерных вокселов с атрибутами
 		vector <TSegment>* Segments_2D;				// вектор сегментов для каждого слоя данных
 		vector <TSegment>* Segments_3D;				// вектор сегментов для нескольких слоёв как единого целого
 		TSnakeParameters* SnakeParameters;			// параметры метода активного контура
 
 		ballPivot *qw;								// объект класса для для 3d-реконструкции
+		vector <TVolumeSegment> *VolumeSegment;		// вектор объёмных (реконструируемых) сегментов
+
+		int MeshStep_X, MeshStep_Y, MeshStep_Z;		// шаги сетки вдоль координатных осей
+		GLfloat MinVoxelDensity;					// минимальное значение плотности вокселов
 		
 	protected: 
 
@@ -363,8 +370,13 @@ namespace Neocortex
 
 		private: System::Windows::Forms::Button^ ButtonReconstructionData;
 		private: System::Windows::Forms::Button^ ButtonReconstructionSegments;
-				
-		private: System::Windows::Forms::CheckBox^  CheckBox_Reconstruction;
+private: System::Windows::Forms::CheckBox^  CheckBox_ReconstructionInputData;
+
+
+private: System::Windows::Forms::TrackBar^  trackBar1;
+private: System::Windows::Forms::Label^  label1;
+private: System::Windows::Forms::CheckBox^  CheckBox_Reconstruction3DSegments;
+
 
 private: System::ComponentModel::IContainer^  components;
 
@@ -376,7 +388,7 @@ private: System::ComponentModel::IContainer^  components;
 		void InitializeComponent(void)
 		{
 			this->components = (gcnew System::ComponentModel::Container());
-			System::Windows::Forms::DataGridViewCellStyle^  dataGridViewCellStyle1 = (gcnew System::Windows::Forms::DataGridViewCellStyle());
+			System::Windows::Forms::DataGridViewCellStyle^  dataGridViewCellStyle3 = (gcnew System::Windows::Forms::DataGridViewCellStyle());
 			this->MenuStrip = (gcnew System::Windows::Forms::MenuStrip());
 			this->ToolStripMenuItem_File = (gcnew System::Windows::Forms::ToolStripMenuItem());
 			this->ToolStripMenuItem_DownloadData = (gcnew System::Windows::Forms::ToolStripMenuItem());
@@ -469,6 +481,8 @@ private: System::ComponentModel::IContainer^  components;
 			this->RadioButtonTextures_3D = (gcnew System::Windows::Forms::RadioButton());
 			this->RadioButtonTextures_2D = (gcnew System::Windows::Forms::RadioButton());
 			this->Localization = (gcnew System::Windows::Forms::TabPage());
+			this->label1 = (gcnew System::Windows::Forms::Label());
+			this->trackBar1 = (gcnew System::Windows::Forms::TrackBar());
 			this->CheckBox_Localization = (gcnew System::Windows::Forms::CheckBox());
 			this->TextBox_PointY = (gcnew System::Windows::Forms::TextBox());
 			this->TextBox_PointX = (gcnew System::Windows::Forms::TextBox());
@@ -495,9 +509,10 @@ private: System::ComponentModel::IContainer^  components;
 			this->TrackBar_MeshStepY = (gcnew System::Windows::Forms::TrackBar());
 			this->Label_StepX = (gcnew System::Windows::Forms::Label());
 			this->TrackBar_MeshStepX = (gcnew System::Windows::Forms::TrackBar());
-			this->CheckBox_Reconstruction = (gcnew System::Windows::Forms::CheckBox());
+			this->CheckBox_ReconstructionInputData = (gcnew System::Windows::Forms::CheckBox());
 			this->ButtonReconstructionData = (gcnew System::Windows::Forms::Button());
 			this->ButtonReconstructionSegments = (gcnew System::Windows::Forms::Button());
+			this->CheckBox_Reconstruction3DSegments = (gcnew System::Windows::Forms::CheckBox());
 			this->MenuStrip->SuspendLayout();
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->TrackBar_ClustersCount))->BeginInit();
 			this->GroupBoxSegmentation->SuspendLayout();
@@ -522,6 +537,7 @@ private: System::ComponentModel::IContainer^  components;
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->TrackBar_BrightnessMult))->BeginInit();
 			this->GroupBox_Methods->SuspendLayout();
 			this->Localization->SuspendLayout();
+			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->trackBar1))->BeginInit();
 			this->GroupBox_SnakeParameters->SuspendLayout();
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->TrackBar_IterationsNumber))->BeginInit();
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->TrackBar_GammaValue))->BeginInit();
@@ -905,9 +921,9 @@ private: System::ComponentModel::IContainer^  components;
 			// 
 			// SegmentColor
 			// 
-			dataGridViewCellStyle1->Alignment = System::Windows::Forms::DataGridViewContentAlignment::MiddleCenter;
-			dataGridViewCellStyle1->WrapMode = System::Windows::Forms::DataGridViewTriState::True;
-			this->SegmentColor->DefaultCellStyle = dataGridViewCellStyle1;
+			dataGridViewCellStyle3->Alignment = System::Windows::Forms::DataGridViewContentAlignment::MiddleCenter;
+			dataGridViewCellStyle3->WrapMode = System::Windows::Forms::DataGridViewTriState::True;
+			this->SegmentColor->DefaultCellStyle = dataGridViewCellStyle3;
 			this->SegmentColor->HeaderText = L"Цвет";
 			this->SegmentColor->Name = L"SegmentColor";
 			this->SegmentColor->Resizable = System::Windows::Forms::DataGridViewTriState::True;
@@ -1446,6 +1462,7 @@ private: System::ComponentModel::IContainer^  components;
 			// RadioButtonRaycasting
 			// 
 			this->RadioButtonRaycasting->AutoSize = true;
+			this->RadioButtonRaycasting->Enabled = false;
 			this->RadioButtonRaycasting->Location = System::Drawing::Point(18, 88);
 			this->RadioButtonRaycasting->Name = L"RadioButtonRaycasting";
 			this->RadioButtonRaycasting->Size = System::Drawing::Size(174, 21);
@@ -1457,6 +1474,7 @@ private: System::ComponentModel::IContainer^  components;
 			// RadioButtonTextures_3D
 			// 
 			this->RadioButtonTextures_3D->AutoSize = true;
+			this->RadioButtonTextures_3D->Enabled = false;
 			this->RadioButtonTextures_3D->Location = System::Drawing::Point(18, 61);
 			this->RadioButtonTextures_3D->Name = L"RadioButtonTextures_3D";
 			this->RadioButtonTextures_3D->Size = System::Drawing::Size(111, 21);
@@ -1481,6 +1499,8 @@ private: System::ComponentModel::IContainer^  components;
 			// Localization
 			// 
 			this->Localization->BackColor = System::Drawing::SystemColors::Control;
+			this->Localization->Controls->Add(this->label1);
+			this->Localization->Controls->Add(this->trackBar1);
 			this->Localization->Controls->Add(this->CheckBox_Localization);
 			this->Localization->Controls->Add(this->TextBox_PointY);
 			this->Localization->Controls->Add(this->TextBox_PointX);
@@ -1495,10 +1515,28 @@ private: System::ComponentModel::IContainer^  components;
 			this->Localization->TabIndex = 3;
 			this->Localization->Text = L"Локализация";
 			// 
+			// label1
+			// 
+			this->label1->AutoSize = true;
+			this->label1->Location = System::Drawing::Point(55, 337);
+			this->label1->Name = L"label1";
+			this->label1->Size = System::Drawing::Size(256, 17);
+			this->label1->TabIndex = 13;
+			this->label1->Text = L"Окно для построения карты энергии:";
+			// 
+			// trackBar1
+			// 
+			this->trackBar1->Location = System::Drawing::Point(342, 331);
+			this->trackBar1->Minimum = 2;
+			this->trackBar1->Name = L"trackBar1";
+			this->trackBar1->Size = System::Drawing::Size(151, 56);
+			this->trackBar1->TabIndex = 12;
+			this->trackBar1->Value = 2;
+			// 
 			// CheckBox_Localization
 			// 
 			this->CheckBox_Localization->AutoSize = true;
-			this->CheckBox_Localization->Location = System::Drawing::Point(58, 372);
+			this->CheckBox_Localization->Location = System::Drawing::Point(58, 448);
 			this->CheckBox_Localization->Name = L"CheckBox_Localization";
 			this->CheckBox_Localization->Size = System::Drawing::Size(282, 21);
 			this->CheckBox_Localization->TabIndex = 11;
@@ -1508,14 +1546,14 @@ private: System::ComponentModel::IContainer^  components;
 			// 
 			// TextBox_PointY
 			// 
-			this->TextBox_PointY->Location = System::Drawing::Point(298, 527);
+			this->TextBox_PointY->Location = System::Drawing::Point(298, 603);
 			this->TextBox_PointY->Name = L"TextBox_PointY";
 			this->TextBox_PointY->Size = System::Drawing::Size(100, 22);
 			this->TextBox_PointY->TabIndex = 10;
 			// 
 			// TextBox_PointX
 			// 
-			this->TextBox_PointX->Location = System::Drawing::Point(298, 492);
+			this->TextBox_PointX->Location = System::Drawing::Point(298, 568);
 			this->TextBox_PointX->Name = L"TextBox_PointX";
 			this->TextBox_PointX->Size = System::Drawing::Size(100, 22);
 			this->TextBox_PointX->TabIndex = 9;
@@ -1523,7 +1561,7 @@ private: System::ComponentModel::IContainer^  components;
 			// Label_PointY
 			// 
 			this->Label_PointY->AutoSize = true;
-			this->Label_PointY->Location = System::Drawing::Point(173, 528);
+			this->Label_PointY->Location = System::Drawing::Point(173, 604);
 			this->Label_PointY->Name = L"Label_PointY";
 			this->Label_PointY->Size = System::Drawing::Size(125, 17);
 			this->Label_PointY->TabIndex = 8;
@@ -1532,7 +1570,7 @@ private: System::ComponentModel::IContainer^  components;
 			// Label_PointX
 			// 
 			this->Label_PointX->AutoSize = true;
-			this->Label_PointX->Location = System::Drawing::Point(173, 493);
+			this->Label_PointX->Location = System::Drawing::Point(173, 569);
 			this->Label_PointX->Name = L"Label_PointX";
 			this->Label_PointX->Size = System::Drawing::Size(125, 17);
 			this->Label_PointX->TabIndex = 7;
@@ -1542,7 +1580,7 @@ private: System::ComponentModel::IContainer^  components;
 			// 
 			this->CheckBox_Gradients->AutoSize = true;
 			this->CheckBox_Gradients->Enabled = false;
-			this->CheckBox_Gradients->Location = System::Drawing::Point(58, 333);
+			this->CheckBox_Gradients->Location = System::Drawing::Point(58, 409);
 			this->CheckBox_Gradients->Name = L"CheckBox_Gradients";
 			this->CheckBox_Gradients->Size = System::Drawing::Size(212, 21);
 			this->CheckBox_Gradients->TabIndex = 2;
@@ -1553,7 +1591,7 @@ private: System::ComponentModel::IContainer^  components;
 			// ButtonLocalize
 			// 
 			this->ButtonLocalize->Enabled = false;
-			this->ButtonLocalize->Location = System::Drawing::Point(143, 430);
+			this->ButtonLocalize->Location = System::Drawing::Point(143, 506);
 			this->ButtonLocalize->Name = L"ButtonLocalize";
 			this->ButtonLocalize->Size = System::Drawing::Size(282, 34);
 			this->ButtonLocalize->TabIndex = 1;
@@ -1674,6 +1712,7 @@ private: System::ComponentModel::IContainer^  components;
 			// Reconstruction
 			// 
 			this->Reconstruction->BackColor = System::Drawing::SystemColors::Control;
+			this->Reconstruction->Controls->Add(this->CheckBox_Reconstruction3DSegments);
 			this->Reconstruction->Controls->Add(this->Label_MinVoxelsDensity);
 			this->Reconstruction->Controls->Add(this->TrackBar_MinVoxelsDensity);
 			this->Reconstruction->Controls->Add(this->Label_StepZ);
@@ -1682,7 +1721,7 @@ private: System::ComponentModel::IContainer^  components;
 			this->Reconstruction->Controls->Add(this->TrackBar_MeshStepY);
 			this->Reconstruction->Controls->Add(this->Label_StepX);
 			this->Reconstruction->Controls->Add(this->TrackBar_MeshStepX);
-			this->Reconstruction->Controls->Add(this->CheckBox_Reconstruction);
+			this->Reconstruction->Controls->Add(this->CheckBox_ReconstructionInputData);
 			this->Reconstruction->Controls->Add(this->ButtonReconstructionData);
 			this->Reconstruction->Controls->Add(this->ButtonReconstructionSegments);
 			this->Reconstruction->Location = System::Drawing::Point(4, 25);
@@ -1694,7 +1733,6 @@ private: System::ComponentModel::IContainer^  components;
 			// Label_MinVoxelsDensity
 			// 
 			this->Label_MinVoxelsDensity->AutoSize = true;
-			this->Label_MinVoxelsDensity->Enabled = false;
 			this->Label_MinVoxelsDensity->Location = System::Drawing::Point(12, 196);
 			this->Label_MinVoxelsDensity->Name = L"Label_MinVoxelsDensity";
 			this->Label_MinVoxelsDensity->Size = System::Drawing::Size(303, 17);
@@ -1703,9 +1741,8 @@ private: System::ComponentModel::IContainer^  components;
 			// 
 			// TrackBar_MinVoxelsDensity
 			// 
-			this->TrackBar_MinVoxelsDensity->Enabled = false;
 			this->TrackBar_MinVoxelsDensity->Location = System::Drawing::Point(334, 190);
-			this->TrackBar_MinVoxelsDensity->Maximum = 100;
+			this->TrackBar_MinVoxelsDensity->Maximum = 2000;
 			this->TrackBar_MinVoxelsDensity->Name = L"TrackBar_MinVoxelsDensity";
 			this->TrackBar_MinVoxelsDensity->Size = System::Drawing::Size(198, 56);
 			this->TrackBar_MinVoxelsDensity->TabIndex = 10;
@@ -1714,7 +1751,6 @@ private: System::ComponentModel::IContainer^  components;
 			// Label_StepZ
 			// 
 			this->Label_StepZ->AutoSize = true;
-			this->Label_StepZ->Enabled = false;
 			this->Label_StepZ->Location = System::Drawing::Point(72, 130);
 			this->Label_StepZ->Name = L"Label_StepZ";
 			this->Label_StepZ->Size = System::Drawing::Size(110, 17);
@@ -1723,7 +1759,6 @@ private: System::ComponentModel::IContainer^  components;
 			// 
 			// TrackBar_MeshStepZ
 			// 
-			this->TrackBar_MeshStepZ->Enabled = false;
 			this->TrackBar_MeshStepZ->Location = System::Drawing::Point(200, 125);
 			this->TrackBar_MeshStepZ->Minimum = 1;
 			this->TrackBar_MeshStepZ->Name = L"TrackBar_MeshStepZ";
@@ -1735,7 +1770,6 @@ private: System::ComponentModel::IContainer^  components;
 			// Label_StepY
 			// 
 			this->Label_StepY->AutoSize = true;
-			this->Label_StepY->Enabled = false;
 			this->Label_StepY->Location = System::Drawing::Point(72, 80);
 			this->Label_StepY->Name = L"Label_StepY";
 			this->Label_StepY->Size = System::Drawing::Size(110, 17);
@@ -1744,7 +1778,6 @@ private: System::ComponentModel::IContainer^  components;
 			// 
 			// TrackBar_MeshStepY
 			// 
-			this->TrackBar_MeshStepY->Enabled = false;
 			this->TrackBar_MeshStepY->Location = System::Drawing::Point(200, 75);
 			this->TrackBar_MeshStepY->Minimum = 1;
 			this->TrackBar_MeshStepY->Name = L"TrackBar_MeshStepY";
@@ -1756,7 +1789,6 @@ private: System::ComponentModel::IContainer^  components;
 			// Label_StepX
 			// 
 			this->Label_StepX->AutoSize = true;
-			this->Label_StepX->Enabled = false;
 			this->Label_StepX->Location = System::Drawing::Point(72, 28);
 			this->Label_StepX->Name = L"Label_StepX";
 			this->Label_StepX->Size = System::Drawing::Size(110, 17);
@@ -1765,7 +1797,6 @@ private: System::ComponentModel::IContainer^  components;
 			// 
 			// TrackBar_MeshStepX
 			// 
-			this->TrackBar_MeshStepX->Enabled = false;
 			this->TrackBar_MeshStepX->Location = System::Drawing::Point(200, 22);
 			this->TrackBar_MeshStepX->Minimum = 1;
 			this->TrackBar_MeshStepX->Name = L"TrackBar_MeshStepX";
@@ -1774,16 +1805,16 @@ private: System::ComponentModel::IContainer^  components;
 			this->TrackBar_MeshStepX->Value = 1;
 			this->TrackBar_MeshStepX->ValueChanged += gcnew System::EventHandler(this, &MainForm::TrackBar_MeshStepX_ValueChanged);
 			// 
-			// CheckBox_Reconstruction
+			// CheckBox_ReconstructionInputData
 			// 
-			this->CheckBox_Reconstruction->AutoSize = true;
-			this->CheckBox_Reconstruction->Location = System::Drawing::Point(118, 364);
-			this->CheckBox_Reconstruction->Name = L"CheckBox_Reconstruction";
-			this->CheckBox_Reconstruction->Size = System::Drawing::Size(295, 21);
-			this->CheckBox_Reconstruction->TabIndex = 3;
-			this->CheckBox_Reconstruction->Text = L"Отображать результаты реконструкции";
-			this->CheckBox_Reconstruction->UseVisualStyleBackColor = true;
-			this->CheckBox_Reconstruction->CheckedChanged += gcnew System::EventHandler(this, &MainForm::CheckBox_Reconstruction_CheckedChanged);
+			this->CheckBox_ReconstructionInputData->AutoSize = true;
+			this->CheckBox_ReconstructionInputData->Location = System::Drawing::Point(64, 375);
+			this->CheckBox_ReconstructionInputData->Name = L"CheckBox_ReconstructionInputData";
+			this->CheckBox_ReconstructionInputData->Size = System::Drawing::Size(412, 21);
+			this->CheckBox_ReconstructionInputData->TabIndex = 3;
+			this->CheckBox_ReconstructionInputData->Text = L"Отображать результаты реконструкции исходных данных";
+			this->CheckBox_ReconstructionInputData->UseVisualStyleBackColor = true;
+			this->CheckBox_ReconstructionInputData->CheckedChanged += gcnew System::EventHandler(this, &MainForm::CheckBox_ReconstructionInputData_CheckedChanged);
 			// 
 			// ButtonReconstructionData
 			// 
@@ -1803,9 +1834,19 @@ private: System::ComponentModel::IContainer^  components;
 			this->ButtonReconstructionSegments->Name = L"ButtonReconstructionSegments";
 			this->ButtonReconstructionSegments->Size = System::Drawing::Size(236, 40);
 			this->ButtonReconstructionSegments->TabIndex = 2;
-			this->ButtonReconstructionSegments->Text = L"Реконструкция сегментов";
+			this->ButtonReconstructionSegments->Text = L"Реконструкция 3D-сегментов";
 			this->ButtonReconstructionSegments->UseVisualStyleBackColor = true;
 			this->ButtonReconstructionSegments->Click += gcnew System::EventHandler(this, &MainForm::ButtonReconstructionSegments_Click);
+			// 
+			// CheckBox_Reconstruction3DSegments
+			// 
+			this->CheckBox_Reconstruction3DSegments->AutoSize = true;
+			this->CheckBox_Reconstruction3DSegments->Location = System::Drawing::Point(64, 412);
+			this->CheckBox_Reconstruction3DSegments->Name = L"CheckBox_Reconstruction3DSegments";
+			this->CheckBox_Reconstruction3DSegments->Size = System::Drawing::Size(389, 21);
+			this->CheckBox_Reconstruction3DSegments->TabIndex = 12;
+			this->CheckBox_Reconstruction3DSegments->Text = L"Отображать результаты реконструкции 3D-сегментов";
+			this->CheckBox_Reconstruction3DSegments->UseVisualStyleBackColor = true;
 			// 
 			// MainForm
 			// 
@@ -1858,6 +1899,7 @@ private: System::ComponentModel::IContainer^  components;
 			this->GroupBox_Methods->PerformLayout();
 			this->Localization->ResumeLayout(false);
 			this->Localization->PerformLayout();
+			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->trackBar1))->EndInit();
 			this->GroupBox_SnakeParameters->ResumeLayout(false);
 			this->GroupBox_SnakeParameters->PerformLayout();
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->TrackBar_IterationsNumber))->EndInit();
@@ -1963,7 +2005,7 @@ private: System::ComponentModel::IContainer^  components;
 
 			  if (InputData && InputData->data) 
 			  { 
-				  if (this->CheckBox_Reconstruction->Checked && qw)
+				  if (this->CheckBox_ReconstructionInputData->Checked && qw)
 				  {
 					int N=10;
 					int RazmX_By_N=qw->razm_x*N;
@@ -1996,24 +2038,73 @@ private: System::ComponentModel::IContainer^  components;
 
 				   qw->drawAxises();
 				   glPopMatrix();
-				   //glutSwapBuffers();
+				  }
+
+				  else
+
+				  if (this->CheckBox_Reconstruction3DSegments->Checked && (VolumeSegment->size()!=0))
+				  {
+				   glMatrixMode(GL_MODELVIEW);
+				   glClear(GL_COLOR_BUFFER_BIT);
+
+				   glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+				   glPushMatrix();
+
+				   for (size_t index = 0; index < VolumeSegment->size(); ++index)
+				   if (VolumeSegment->at(index).visible)
+				   {
+				    int N=10;
+				    int RazmX_By_N=VolumeSegment->at(index).object.razm_x*N;
+				    int RazmY_By_N=VolumeSegment->at(index).object.razm_y*N;
+				    int RazmZ_By_N=VolumeSegment->at(index).object.razm_z*N;
+
+					int HalfCountX=VolumeSegment->at(index).object.COUNT_OF_POINTS_X/2;
+					int HalfCountY=VolumeSegment->at(index).object.COUNT_OF_POINTS_Y/2;
+					int HalfCountZ=VolumeSegment->at(index).object.COUNT_OF_POINTS_Z/2;
+
+					glColor4f(VolumeSegment->at(index).color.R, 
+							  VolumeSegment->at(index).color.G, 
+							  VolumeSegment->at(index).color.B, 
+							  VolumeSegment->at(index).color.A);
+
+					glBegin(GL_TRIANGLES);
+				   
+					for(int i=0; i<VolumeSegment->at(index).object.TRIANGLES_COUNT; i++)
+				    {
+					 glVertex3f((VolumeSegment->at(index).object.all_points[VolumeSegment->at(index).object.triangles_res[i].point1].getX()-HalfCountX)*VolumeSegment->at(index).object.scale.x, 
+						        (VolumeSegment->at(index).object.all_points[VolumeSegment->at(index).object.triangles_res[i].point1].getY()-HalfCountY)*VolumeSegment->at(index).object.scale.y, 
+								(VolumeSegment->at(index).object.all_points[VolumeSegment->at(index).object.triangles_res[i].point1].getZ()-HalfCountZ)*VolumeSegment->at(index).object.scale.z);
+					 glVertex3f((VolumeSegment->at(index).object.all_points[VolumeSegment->at(index).object.triangles_res[i].point2].getX()-HalfCountX)*VolumeSegment->at(index).object.scale.x, 
+								(VolumeSegment->at(index).object.all_points[VolumeSegment->at(index).object.triangles_res[i].point2].getY()-HalfCountY)*VolumeSegment->at(index).object.scale.y, 
+								(VolumeSegment->at(index).object.all_points[VolumeSegment->at(index).object.triangles_res[i].point2].getZ()-HalfCountZ)*VolumeSegment->at(index).object.scale.z);
+					 glVertex3f((VolumeSegment->at(index).object.all_points[VolumeSegment->at(index).object.triangles_res[i].point3].getX()-HalfCountX)*VolumeSegment->at(index).object.scale.x, 
+						        (VolumeSegment->at(index).object.all_points[VolumeSegment->at(index).object.triangles_res[i].point3].getY()-HalfCountY)*VolumeSegment->at(index).object.scale.y, 
+								(VolumeSegment->at(index).object.all_points[VolumeSegment->at(index).object.triangles_res[i].point3].getZ()-HalfCountZ)*VolumeSegment->at(index).object.scale.z);
+				    }
+					
+				    glEnd();
+					
+					// VolumeSegment->at(index).object.drawAxises();
+					
+				   }
+				   
+				   glPopMatrix(); 
 				  }
 
 				  else 
 				  {
+				   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+				   GLenum target = RadioButtonTextures_3D->Checked ? GL_TEXTURE_3D : GL_TEXTURE_2D;
+				   glColor4f(BrightnessMult / (float)(TrackBar_BrightnessMult->Maximum), BrightnessMult / (float)(TrackBar_BrightnessMult->Maximum), BrightnessMult / (float)(TrackBar_BrightnessMult->Maximum), 1.0f);
 
-				 
-			   GLenum target = RadioButtonTextures_3D->Checked ? GL_TEXTURE_3D : GL_TEXTURE_2D;
-			   glColor4f(BrightnessMult / (float)(TrackBar_BrightnessMult->Maximum), BrightnessMult / (float)(TrackBar_BrightnessMult->Maximum), BrightnessMult / (float)(TrackBar_BrightnessMult->Maximum), 1.0f);
+				   if (this->RadioButton_3D->Checked)
+				   {
+			        float localDepth = -((float)(NumericUpDown_Finish->Value-NumericUpDown_Start->Value) * InputData->scaleZ * this->TrackBar_LayersDistance->Value / 2.0f);
+				    float width = (float)(InputData->sizeX / 2) * InputData->scaleX;
+                    float height = (float)(InputData->sizeY / 2) * InputData->scaleY;
 
-			   if (this->RadioButton_3D->Checked)
-			   {
-			    float localDepth = -((float)(NumericUpDown_Finish->Value-NumericUpDown_Start->Value) * InputData->scaleZ * this->TrackBar_LayersDistance->Value / 2.0f);
-				float width = (float)(InputData->sizeX / 2) * InputData->scaleX;
-                float height = (float)(InputData->sizeY / 2) * InputData->scaleY;
-
-			    glEnable(target);
-                glBindTexture(target, layerTextures[0]);
+			        glEnable(target);
+                    glBindTexture(target, layerTextures[0]);
 
             	for (size_t iLayer = (size_t)NumericUpDown_Start->Value; iLayer < NumericUpDown_Finish->Value + 1; ++iLayer) 
 				{
@@ -2257,6 +2348,23 @@ private: System::ComponentModel::IContainer^  components;
 				 this->Label_GammaValue->Text = L"Gamma: " + SnakeParameters->gamma;
 				 this->Label_IterationsNumber->Text = L"Число итераций: " + SnakeParameters->iterations_number;
 
+				 MeshStep_X = MeshStep_Y = 10; MeshStep_Z = 2;
+				 MinVoxelDensity = 100.0f;
+
+				 this->Label_StepX->Text = L"Шаг сетки по X: " + MeshStep_X.ToString();
+				 this->Label_StepY->Text = L"Шаг сетки по Y: " + MeshStep_Y.ToString();
+				 this->Label_StepZ->Text = L"Шаг сетки по Z: " + MeshStep_Z.ToString();
+
+				 this->Label_MinVoxelsDensity->Text = L"Минимальная плотность видимых вокселов: " + MinVoxelDensity.ToString();
+
+				 this->TrackBar_MeshStepX->Value = MeshStep_X;
+				 this->TrackBar_MeshStepY->Value = MeshStep_Y;
+				 this->TrackBar_MeshStepZ->Value = MeshStep_Z;
+
+				 this->TrackBar_MinVoxelsDensity->Value = (int)MinVoxelDensity;
+
+				 VolumeSegment = new vector <TVolumeSegment> [1];
+					
 				 layerTextures = NULL;
 			 }
 	private: System::Void ToolStripMenuItem_DownloadFile_Click(System::Object^  sender, System::EventArgs^  e) 
@@ -2307,15 +2415,9 @@ private: System::ComponentModel::IContainer^  components;
 
                float fileSize = (float)(IO::FileInfo(pathToDataFile).Length >> 20);
                 
-			   delete [] VoxelsData; VoxelsData = NULL; VoxelsData = new TVoxel [InputData->TotalSize];
+			   delete [] VoxelsData; VoxelsData = NULL; VoxelsData = new TVoxelSegments [InputData->TotalSize];
 
-			   delete qw; qw = new ballPivot(InputData);
-
-			   this->TrackBar_MeshStepX->Value = qw->STEP_X;
-			   this->TrackBar_MeshStepY->Value = qw->STEP_Y;
-			   this->TrackBar_MeshStepZ->Value = qw->STEP_Z;
-
-			   this->TrackBar_MinVoxelsDensity->Value = qw->MIN_DENSITY;
+			   // delete VolumeSegment; VolumeSegment = new vector <TVolumeSegment> [1];
 
 			   MaxDensity = 0; MinDensity = UINT::MaxValue;
 
@@ -2375,22 +2477,6 @@ private: System::ComponentModel::IContainer^  components;
 			   this->TrackBar_ScaleX->Enabled = true;
 			   this->TrackBar_ScaleY->Enabled = true;
 			   this->TrackBar_ScaleZ->Enabled = true;
-
-			   this->Label_StepX->Enabled = true;
-			   this->Label_StepY->Enabled = true;
-			   this->Label_StepZ->Enabled = true;
-
-			   this->Label_MinVoxelsDensity->Enabled = true;
-
-			   this->TrackBar_MeshStepX->Enabled = true;
-			   this->TrackBar_MeshStepY->Enabled = true;
-			   this->TrackBar_MeshStepZ->Enabled = true;
-
-			   this->TrackBar_MinVoxelsDensity->Enabled = true;
-
-			   qw->STEP_X = this->TrackBar_MeshStepX->Value;
-			   qw->STEP_Y = this->TrackBar_MeshStepY->Value;
-			   qw->STEP_Z = this->TrackBar_MeshStepZ->Value;
 
 			   this->TrackBar_ScaleX->Value = (int)(InputData->scaleX*this->TrackBar_ScaleX->Maximum);
 			   this->TrackBar_ScaleY->Value = (int)(InputData->scaleY*this->TrackBar_ScaleY->Maximum);
@@ -2832,6 +2918,8 @@ private: System::Void Button_Clusterization_Click(System::Object^  sender, Syste
 		   CellValueChanging = true;
 
 		   this->DataGridView_Clusters->Enabled = this->CheckBoxClusters->Checked;
+
+		   this->ButtonReconstructionSegments->Enabled = true;
 		  }
 
 		  GenerateTextures();
@@ -3016,7 +3104,7 @@ private: System::Void CheckBoxClusters_CheckedChanged(System::Object^  sender, S
 			 GenerateTextures();
 			 this->CheckBox_Gradients->Checked = !this->CheckBoxClusters->Checked&&this->CheckBox_Gradients->Checked;
 			 this->CheckBox_Localization->Checked = !this->CheckBoxClusters->Checked&&this->CheckBox_Localization->Checked;
-			 this->CheckBox_Reconstruction->Checked = !this->CheckBoxClusters->Checked&&this->CheckBox_Reconstruction->Checked;
+			 this->CheckBox_ReconstructionInputData->Checked = !this->CheckBoxClusters->Checked&&this->CheckBox_ReconstructionInputData->Checked;
 		 }
 private: System::Void TrackBar_LayersDistance_ValueChanged(System::Object^  sender, System::EventArgs^  e) {
 			 this->Label_LayersDistance->Text = L"Расстояние между слоями: "+
@@ -3262,7 +3350,7 @@ private: System::Void ToolStripMenuItem_DownloadFolder_Click(System::Object^ sen
 
 		   InputData->data = new short [InputData->TotalSize];
 
-		   delete [] VoxelsData; VoxelsData = new TVoxel [InputData->TotalSize];
+		   delete [] VoxelsData; VoxelsData = new TVoxelSegments [InputData->TotalSize];
 
 		   PartPointer = 0;
 
@@ -3352,11 +3440,7 @@ private: System::Void RenderingPanel_PreviewKeyDown(System::Object^  sender, Sys
 		 private: System::Void ButtonReconstructionData_Click(System::Object^  sender, System::EventArgs^  e) 
 		 {
 		  delete qw;
-		  qw = new ballPivot(InputData);
-		  qw->STEP_X = this->TrackBar_MeshStepX->Value;
-		  qw->STEP_Y = this->TrackBar_MeshStepY->Value;
-		  qw->STEP_Z = this->TrackBar_MeshStepZ->Value;
-		  qw->MIN_DENSITY = this->TrackBar_MinVoxelsDensity->Value;
+		  qw = new ballPivot(InputData, MeshStep_X, MeshStep_Y, MeshStep_Z, MinVoxelDensity);
 		  clock_t start = clock();
 		  qw->buildMesh();
 		  clock_t finish = clock();
@@ -3569,7 +3653,7 @@ private: System::Void Button_NextPart_Click(System::Object^  sender, System::Eve
 
 		  InputData->data = new short [InputData->TotalSize];
 	      
-		  delete [] VoxelsData; VoxelsData = new TVoxel [InputData->TotalSize];
+		  delete [] VoxelsData; VoxelsData = new TVoxelSegments [InputData->TotalSize];
 
 		  for (int k = PartPointer; k<PartPointer+InputData->sizeZ; ++k)
  		  {
@@ -3603,7 +3687,7 @@ private: System::Void Button_PreviousPart_Click(System::Object^  sender, System:
 
 		  InputData->data = new short [InputData->TotalSize];
 	      
-		  delete [] VoxelsData; VoxelsData = new TVoxel [InputData->TotalSize];
+		  delete [] VoxelsData; VoxelsData = new TVoxelSegments [InputData->TotalSize];
 
 		  for (int k = PartPointer; k<PartPointer+InputData->sizeZ; ++k)
  		  {
@@ -3940,57 +4024,62 @@ private: System::Void TextBox_ScaleZ_TextChanged(System::Object^  sender, System
 		 {
 		  InputData->scaleZ = Double::Parse(this->TextBox_ScaleZ->Text);
 		 }
-private: System::Void CheckBox_Reconstruction_CheckedChanged(System::Object^  sender, System::EventArgs^  e) 
+private: System::Void CheckBox_ReconstructionInputData_CheckedChanged(System::Object^  sender, System::EventArgs^  e) 
 		 {
-		  this->CheckBox_Gradients->Checked = !this->CheckBox_Reconstruction->Checked&&this->CheckBox_Gradients->Checked;
-		  this->CheckBox_Localization->Checked = !this->CheckBox_Reconstruction->Checked&&this->CheckBox_Localization->Checked;
-		  this->CheckBoxClusters->Checked = !this->CheckBox_Reconstruction->Checked&&this->CheckBoxClusters->Checked;
-		  //if (!this->CheckBox_Reconstruction->Checked) distance_z = 100.0f;
+		  this->CheckBox_Gradients->Checked = !this->CheckBox_ReconstructionInputData->Checked&&this->CheckBox_Gradients->Checked;
+		  this->CheckBox_Localization->Checked = !this->CheckBox_ReconstructionInputData->Checked&&this->CheckBox_Localization->Checked;
+		  this->CheckBoxClusters->Checked = !this->CheckBox_ReconstructionInputData->Checked&&this->CheckBoxClusters->Checked;
+		  if (!this->CheckBox_ReconstructionInputData->Checked) distance_z = 600.0f;
 		 }
 private: System::Void CheckBox_Gradients_CheckedChanged(System::Object^  sender, System::EventArgs^  e) 
 		 {
 		  this->CheckBox_Localization->Checked = !this->CheckBox_Gradients->Checked&&this->CheckBox_Localization->Checked;
           this->CheckBoxClusters->Checked = !this->CheckBox_Gradients->Checked&&this->CheckBoxClusters->Checked;
-		  this->CheckBox_Reconstruction->Checked = !this->CheckBox_Gradients->Checked&&this->CheckBox_Reconstruction->Checked;
+		  this->CheckBox_ReconstructionInputData->Checked = !this->CheckBox_Gradients->Checked&&this->CheckBox_ReconstructionInputData->Checked;
 		 }
 private: System::Void CheckBox_Localization_CheckedChanged(System::Object^  sender, System::EventArgs^  e) 
 		 {
 		  this->CheckBox_Gradients->Checked = !this->CheckBox_Localization->Checked&&this->CheckBox_Gradients->Checked;
           this->CheckBoxClusters->Checked = !this->CheckBox_Localization->Checked&&this->CheckBoxClusters->Checked;
-		  this->CheckBox_Reconstruction->Checked = !this->CheckBox_Localization->Checked&&this->CheckBox_Reconstruction->Checked;
+		  this->CheckBox_ReconstructionInputData->Checked = !this->CheckBox_Localization->Checked&&this->CheckBox_ReconstructionInputData->Checked;
 		 }
 private: System::Void TrackBar_MeshStepX_ValueChanged(System::Object^  sender, System::EventArgs^  e) 
 		 {
-		  qw->STEP_X = this->TrackBar_MeshStepX->Value;
-		  this->Label_StepX->Text = L"Шаг сетки по X: " + qw->STEP_X.ToString();
+		  MeshStep_X = this->TrackBar_MeshStepX->Value;
+		  this->Label_StepX->Text = L"Шаг сетки по X: " + MeshStep_X.ToString();
 		 }
 private: System::Void TrackBar_MeshStepY_ValueChanged(System::Object^  sender, System::EventArgs^  e) 
 		 {
-		  qw->STEP_Y = this->TrackBar_MeshStepY->Value;
-		  this->Label_StepY->Text = L"Шаг сетки по Y: " + qw->STEP_Y.ToString();
+		  MeshStep_Y = this->TrackBar_MeshStepY->Value;
+		  this->Label_StepY->Text = L"Шаг сетки по Y: " + MeshStep_Y.ToString();
 		 }
 private: System::Void TrackBar_MeshStepZ_ValueChanged(System::Object^  sender, System::EventArgs^  e) 
 		 {
-		  qw->STEP_Z = this->TrackBar_MeshStepZ->Value;
-		  this->Label_StepZ->Text = L"Шаг сетки по Z: " + qw->STEP_Z.ToString();
+		  MeshStep_Z = this->TrackBar_MeshStepZ->Value;
+		  this->Label_StepZ->Text = L"Шаг сетки по Z: " + MeshStep_Z.ToString();
 		 }
 private: System::Void TrackBar_MinVoxelsDensity_ValueChanged(System::Object^  sender, System::EventArgs^  e) 
 		 {
-		  qw->MIN_DENSITY = this->TrackBar_MinVoxelsDensity->Value;
-		  this->Label_MinVoxelsDensity->Text = L"Минимальная плотность видимых вокселов: " + qw->MIN_DENSITY.ToString();
+		  MinVoxelDensity = (GLfloat)this->TrackBar_MinVoxelsDensity->Value;
+		  this->Label_MinVoxelsDensity->Text = L"Минимальная плотность видимых вокселов: " + MinVoxelDensity.ToString();
 		 }
 private: System::Void ButtonReconstructionSegments_Click(System::Object^  sender, System::EventArgs^  e) 
 		 {
-		  
-			if (Segments_3D)
-			{
-			 
-				for (int i = 0; i < Segments_3D->size(); ++i)
-				{
-				 
-				}
-			}
-
+		  if (Segments_3D)
+		  {
+		   VolumeSegment->clear();
+		   clock_t start = clock();
+		   for (int i = 0; i < Segments_3D->size(); ++i)
+		   {
+			VolumeSegment->push_back(TVolumeSegment());
+			VolumeSegment->at(i).object = ballPivot(InputData, VoxelsData, i, MeshStep_X, MeshStep_Y, MeshStep_Z, MinVoxelDensity);
+			VolumeSegment->at(i).object.buildMesh();
+			VolumeSegment->at(i).color = Segments_3D->at(i).Color;
+			VolumeSegment->at(i).visible = Segments_3D->at(i).Visible;
+		   }
+		   clock_t finish = clock();
+		   this->Label_Status->Text = L"3D-сегменты реконструированы. Общее время реконструкции: " + ((finish-start)/(1.0f*CLOCKS_PER_SEC)).ToString() + L" c.";
+		  }
 		 }
 };
 }

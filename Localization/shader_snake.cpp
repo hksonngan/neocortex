@@ -219,7 +219,7 @@ bool ShaderSnake::FixParams(int h_image, int width, int height, int components, 
 	
 	//m_image= new Texture2D
 	// !!!разобраться с w & h
-	m_image = new Texture2D(h_image,GL_TEXTURE_2D,0);
+	m_image = new Texture2D(h_image, GL_TEXTURE_2D, 0);
 	m_image->Data=new TextureData2D(width, height, components, h_image);
 
 	// Prepare image(convert to normalized single-channel)

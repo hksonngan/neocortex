@@ -42,15 +42,32 @@ class ScanData
 		short& GetDensity(Layer &layer, size_t x, size_t y);
 
 		double GetDistination(size_t x1, size_t y1, size_t z1, size_t x2, size_t y2, size_t z2);
+};
 
-		
-		
+struct TVoxelSegments					// 2D- и 3D-сегменты вокселов
+{
+ int SegmentIndex_2D, SegmentIndex_3D;  // индексы сегментов, которым принадлежит воксел
+
+ // Конструктор по умолчанию
+ TVoxelSegments(): SegmentIndex_2D(-1), SegmentIndex_3D(-1) {};
 };
 
 struct TVoxelsData					// общая структура для хранения всей информации о вокселах - набросок
 {
+ short* Density;					// плотность вокселов
+ TVoxelSegments *VoxelSegments;		// индексы сегментов вокселов
+ 
  size_t SizeX, SizeY, SizeZ;		// размеры вдоль координатных осей
  float ScaleX, ScaleY, ScaleZ;		// масштабы вдоль координатных осей
+ size_t TotalSize;					// размер всего набора воксела
+ 
+ short MinDensity, MaxDensity;		// границы диапазона значений плотности
+
+ TVoxelsData(const char* path);		
+ TVoxelsData(Layer layer);
+ ~TVoxelsData();
+ 
+ void ReleaseResources();
 };
 
 namespace surface_reconstruction {
