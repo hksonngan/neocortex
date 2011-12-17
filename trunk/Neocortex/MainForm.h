@@ -388,7 +388,7 @@ private: System::ComponentModel::IContainer^  components;
 		void InitializeComponent(void)
 		{
 			this->components = (gcnew System::ComponentModel::Container());
-			System::Windows::Forms::DataGridViewCellStyle^  dataGridViewCellStyle3 = (gcnew System::Windows::Forms::DataGridViewCellStyle());
+			System::Windows::Forms::DataGridViewCellStyle^  dataGridViewCellStyle1 = (gcnew System::Windows::Forms::DataGridViewCellStyle());
 			this->MenuStrip = (gcnew System::Windows::Forms::MenuStrip());
 			this->ToolStripMenuItem_File = (gcnew System::Windows::Forms::ToolStripMenuItem());
 			this->ToolStripMenuItem_DownloadData = (gcnew System::Windows::Forms::ToolStripMenuItem());
@@ -501,6 +501,7 @@ private: System::ComponentModel::IContainer^  components;
 			this->TrackBar_AlphaValue = (gcnew System::Windows::Forms::TrackBar());
 			this->Segmentation = (gcnew System::Windows::Forms::TabPage());
 			this->Reconstruction = (gcnew System::Windows::Forms::TabPage());
+			this->CheckBox_Reconstruction3DSegments = (gcnew System::Windows::Forms::CheckBox());
 			this->Label_MinVoxelsDensity = (gcnew System::Windows::Forms::Label());
 			this->TrackBar_MinVoxelsDensity = (gcnew System::Windows::Forms::TrackBar());
 			this->Label_StepZ = (gcnew System::Windows::Forms::Label());
@@ -512,7 +513,6 @@ private: System::ComponentModel::IContainer^  components;
 			this->CheckBox_ReconstructionInputData = (gcnew System::Windows::Forms::CheckBox());
 			this->ButtonReconstructionData = (gcnew System::Windows::Forms::Button());
 			this->ButtonReconstructionSegments = (gcnew System::Windows::Forms::Button());
-			this->CheckBox_Reconstruction3DSegments = (gcnew System::Windows::Forms::CheckBox());
 			this->MenuStrip->SuspendLayout();
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->TrackBar_ClustersCount))->BeginInit();
 			this->GroupBoxSegmentation->SuspendLayout();
@@ -921,9 +921,9 @@ private: System::ComponentModel::IContainer^  components;
 			// 
 			// SegmentColor
 			// 
-			dataGridViewCellStyle3->Alignment = System::Windows::Forms::DataGridViewContentAlignment::MiddleCenter;
-			dataGridViewCellStyle3->WrapMode = System::Windows::Forms::DataGridViewTriState::True;
-			this->SegmentColor->DefaultCellStyle = dataGridViewCellStyle3;
+			dataGridViewCellStyle1->Alignment = System::Windows::Forms::DataGridViewContentAlignment::MiddleCenter;
+			dataGridViewCellStyle1->WrapMode = System::Windows::Forms::DataGridViewTriState::True;
+			this->SegmentColor->DefaultCellStyle = dataGridViewCellStyle1;
 			this->SegmentColor->HeaderText = L"Цвет";
 			this->SegmentColor->Name = L"SegmentColor";
 			this->SegmentColor->Resizable = System::Windows::Forms::DataGridViewTriState::True;
@@ -1730,6 +1730,17 @@ private: System::ComponentModel::IContainer^  components;
 			this->Reconstruction->TabIndex = 2;
 			this->Reconstruction->Text = L"3D-реконструкция";
 			// 
+			// CheckBox_Reconstruction3DSegments
+			// 
+			this->CheckBox_Reconstruction3DSegments->AutoSize = true;
+			this->CheckBox_Reconstruction3DSegments->Location = System::Drawing::Point(64, 412);
+			this->CheckBox_Reconstruction3DSegments->Name = L"CheckBox_Reconstruction3DSegments";
+			this->CheckBox_Reconstruction3DSegments->Size = System::Drawing::Size(389, 21);
+			this->CheckBox_Reconstruction3DSegments->TabIndex = 12;
+			this->CheckBox_Reconstruction3DSegments->Text = L"Отображать результаты реконструкции 3D-сегментов";
+			this->CheckBox_Reconstruction3DSegments->UseVisualStyleBackColor = true;
+			this->CheckBox_Reconstruction3DSegments->CheckedChanged += gcnew System::EventHandler(this, &MainForm::CheckBox_Reconstruction3DSegments_CheckedChanged);
+			// 
 			// Label_MinVoxelsDensity
 			// 
 			this->Label_MinVoxelsDensity->AutoSize = true;
@@ -1819,7 +1830,7 @@ private: System::ComponentModel::IContainer^  components;
 			// ButtonReconstructionData
 			// 
 			this->ButtonReconstructionData->Enabled = false;
-			this->ButtonReconstructionData->Location = System::Drawing::Point(144, 257);
+			this->ButtonReconstructionData->Location = System::Drawing::Point(145, 257);
 			this->ButtonReconstructionData->Name = L"ButtonReconstructionData";
 			this->ButtonReconstructionData->Size = System::Drawing::Size(236, 38);
 			this->ButtonReconstructionData->TabIndex = 1;
@@ -1832,21 +1843,11 @@ private: System::ComponentModel::IContainer^  components;
 			this->ButtonReconstructionSegments->Enabled = false;
 			this->ButtonReconstructionSegments->Location = System::Drawing::Point(145, 307);
 			this->ButtonReconstructionSegments->Name = L"ButtonReconstructionSegments";
-			this->ButtonReconstructionSegments->Size = System::Drawing::Size(236, 40);
+			this->ButtonReconstructionSegments->Size = System::Drawing::Size(236, 38);
 			this->ButtonReconstructionSegments->TabIndex = 2;
 			this->ButtonReconstructionSegments->Text = L"Реконструкция 3D-сегментов";
 			this->ButtonReconstructionSegments->UseVisualStyleBackColor = true;
 			this->ButtonReconstructionSegments->Click += gcnew System::EventHandler(this, &MainForm::ButtonReconstructionSegments_Click);
-			// 
-			// CheckBox_Reconstruction3DSegments
-			// 
-			this->CheckBox_Reconstruction3DSegments->AutoSize = true;
-			this->CheckBox_Reconstruction3DSegments->Location = System::Drawing::Point(64, 412);
-			this->CheckBox_Reconstruction3DSegments->Name = L"CheckBox_Reconstruction3DSegments";
-			this->CheckBox_Reconstruction3DSegments->Size = System::Drawing::Size(389, 21);
-			this->CheckBox_Reconstruction3DSegments->TabIndex = 12;
-			this->CheckBox_Reconstruction3DSegments->Text = L"Отображать результаты реконструкции 3D-сегментов";
-			this->CheckBox_Reconstruction3DSegments->UseVisualStyleBackColor = true;
 			// 
 			// MainForm
 			// 
@@ -2326,9 +2327,11 @@ private: System::ComponentModel::IContainer^  components;
 				 this->Button_VisualizeSelectedClusters->Enabled = false;
 
 				 this->CheckBox_DepthTest->Enabled = false;
-				 
+
 				 this->Label_LayersDistance->Text = L"Расстояние между слоями: "+this->TrackBar_LayersDistance->Value.ToString();
 				 this->Label_LayersDistance->Enabled = false;
+
+				 BrightnessMult = 30.0f;
 
 				 this->Label_ClustersCount->Text = L"Максимальное число сегментов: "+this->TrackBar_ClustersCount->Value.ToString();
 				 this->Label_IterationsCount->Text = L"Количество итераций алгоритма: "+this->TrackBar_IterationsCount->Value.ToString();
@@ -2482,6 +2485,8 @@ private: System::ComponentModel::IContainer^  components;
 			   this->TrackBar_ScaleY->Value = (int)(InputData->scaleY*this->TrackBar_ScaleY->Maximum);
 			   this->TrackBar_ScaleZ->Value = (int)(InputData->scaleZ*this->TrackBar_ScaleZ->Maximum);
 
+			   this->TextBox_BrightnessMult->Text = this->TrackBar_BrightnessMult->Value.ToString();
+			
 			   this->Button_Clusterization->Enabled = true;
 
 			   this->ButtonReconstructionData->Enabled = true;
@@ -2490,9 +2495,6 @@ private: System::ComponentModel::IContainer^  components;
                distance_x = distance_y = 0.0f;
 			   distance_z = 600.0f;
 			   
-			   TextBox_BrightnessMult->Text = L"30,0";
-               BrightnessMult = 30.f;
-
 			   StartLayerIndex_3D = 0;
 
 			   CellValueChanging = false;
@@ -2555,23 +2557,39 @@ private: System::Void GenerateTextures()
 		    {
 			 if (CheckBoxClusters->Checked)			// если сегменты отображаются 
 			 {
-			  if (this->RadioButton_2D->Checked && Segments_2D)
+			  if (this->RadioButton_2D->Checked && Segments_2D && 
+				  (InputData->data[reducedIndex]>=low_density) && 
+				  (InputData->data[reducedIndex]<=high_density))
 			  {
 			   TSegment tmpSegment = Segments_2D[iLayer].at(VoxelsData[reducedIndex].SegmentIndex_2D);
-			   if (this->CheckBox_ColorsExport->Checked)
+			   
+			   if (this->CheckBox_ColorsExport->Checked && tmpSegment.tmpVisible)
 			   {
-				if (tmpSegment.tmpVisible && (InputData->data[reducedIndex]>=low_density) && (InputData->data[reducedIndex]<=high_density))
-				{
-				 TColor tmpColor = tmpSegment.tmpColor;
-				 tmp[i] = tmpColor.R;
-			     tmp[i+1] = tmpColor.G;
-			     tmp[i+2] = tmpColor.B;
-			     tmp[i+3] = tmpColor.A;
-				}
-				else tmp[i+3] = tmp[i+2] = tmp[i+1] = tmp[i] = 0.0f;
+				TColor tmpColor = tmpSegment.tmpColor;
+				tmp[i] = tmpColor.R;
+			    tmp[i+1] = tmpColor.G;
+			    tmp[i+2] = tmpColor.B;
+			    tmp[i+3] = tmpColor.A;
 			   }
-			   else
-			   {if (tmpSegment.Visible && (InputData->data[reducedIndex]>=low_density) && (InputData->data[reducedIndex]<=high_density))
+
+			   else if (tmpSegment.Visible)
+			      
+	           {
+			    TColor tmpColor = tmpSegment.Color;
+			    tmp[i] = tmpColor.R;
+			    tmp[i+1] = tmpColor.G;
+			    tmp[i+2] = tmpColor.B;
+			    tmp[i+3] = tmpColor.A;
+			   }
+			   
+			   else tmp[i+3] = tmp[i+2] = tmp[i+1] = tmp[i] = 0.0f;
+			  }
+			  else if (this->RadioButton_3D->Checked && Segments_3D && 
+				       (InputData->data[reducedIndex]>=low_density) && 
+					   (InputData->data[reducedIndex]<=high_density))
+			  {
+			   TSegment tmpSegment = Segments_3D->at(VoxelsData[reducedIndex].SegmentIndex_3D);
+			   if (tmpSegment.Visible)
 			   {
 			    TColor tmpColor = tmpSegment.Color;
 			    tmp[i] = tmpColor.R;
@@ -2580,22 +2598,8 @@ private: System::Void GenerateTextures()
 			    tmp[i+3] = tmpColor.A;
 			   }
 			   else tmp[i+3] = tmp[i+2] = tmp[i+1] = tmp[i] = 0.0f;
-			   }
 			  }
-			  else if (this->RadioButton_3D->Checked && Segments_3D)
-			  {
-			   TSegment tmpSegment = Segments_3D->at(VoxelsData[reducedIndex].SegmentIndex_3D);
-			   if (tmpSegment.Visible && (InputData->data[reducedIndex]>=low_density) && (InputData->data[i]<=high_density))
-			   {
-			    TColor tmpColor = tmpSegment.Color;
-			    tmp[i] = tmpColor.R;
-			    tmp[i+1] = tmpColor.G;
-			    tmp[i+2] = tmpColor.B;
-				tmp[i+3] = tmpColor.A;
-			   }
-			   else tmp[i+3] = tmp[i+2] = tmp[i+1] = tmp[i] = 0.0f;
-			  }
-			 // else tmp[i+3] = tmp[i+2] = tmp[i+1] = tmp[i] = 0.0f;
+			  else tmp[i+3] = tmp[i+2] = tmp[i+1] = tmp[i] = 0.0f;
 			 } 
 			 else tmp[i+3] = tmp[i+2] = tmp[i+1] = tmp[i] = InputData->data[reducedIndex] * 5.0*additionalMult / MaxDensity; 
 			}
@@ -3057,6 +3061,7 @@ private: System::Void DataGridView_Clusters_CellClick(System::Object^  sender, S
 			   if (this->RadioButton_3D->Checked)
 			   {
 				Segments_3D->at(e->RowIndex).Color = TColor((float)selectedColor.R/255, (float)selectedColor.G/255, (float)selectedColor.B/255, (float)selectedColor.A/255);
+				if (VolumeSegment->size()!=0) VolumeSegment->at(e->RowIndex).color = Segments_3D->at(e->RowIndex).Color;
 			   }
 			  
 			   GenerateTextures();
@@ -3094,6 +3099,7 @@ private: System::Void DataGridView_Clusters_CellValueChanged(System::Object^  se
 			 if (this->RadioButton_3D->Checked)
 			 {
 			  Segments_3D->at(index).Visible = (bool)this->DataGridView_Clusters->Rows[index]->Cells[6]->Value;
+			  if (VolumeSegment->size()!=0) VolumeSegment->at(index).visible = Segments_3D->at(index).Visible;
 			 }
 				
 			 GenerateTextures();
@@ -3151,8 +3157,7 @@ private: System::Void DataGridView_Clusters_CellEndEdit(System::Object^  sender,
 			  if (this->RadioButton_3D->Checked)
 			  {
 			   Segments_3D->at(index).Color.A = (float)tmp_value/255;
-			   
-			   
+			   if (VolumeSegment->size()!=0) VolumeSegment->at(index).color = Segments_3D->at(index).Color;
 			  }
 
 			  GenerateTextures();
@@ -3417,7 +3422,7 @@ private: System::Void ToolStripMenuItem_DownloadFolder_Click(System::Object^ sen
 		   distance_x = distance_y = 0.0f;
            distance_z = 600.0f;
 
-		   TextBox_BrightnessMult->Text = L"30,0";
+		   TextBox_BrightnessMult->Text = L"30";
            BrightnessMult = 30.0f;
 
 		   StartLayerIndex_3D = 0;
@@ -4024,11 +4029,20 @@ private: System::Void TextBox_ScaleZ_TextChanged(System::Object^  sender, System
 		 {
 		  InputData->scaleZ = Double::Parse(this->TextBox_ScaleZ->Text);
 		 }
+private: System::Void CheckBox_Reconstruction3DSegments_CheckedChanged(System::Object^  sender, System::EventArgs^  e) 
+		 {
+		  this->CheckBox_Gradients->Checked = !this->CheckBox_Reconstruction3DSegments->Checked&&this->CheckBox_Gradients->Checked;
+		  this->CheckBox_Localization->Checked = !this->CheckBox_Reconstruction3DSegments->Checked&&this->CheckBox_Localization->Checked;
+		  if (!RadioButton_3D->Checked) this->CheckBoxClusters->Checked = !this->CheckBox_Reconstruction3DSegments->Checked&&this->CheckBoxClusters->Checked;
+		  this->CheckBox_ReconstructionInputData->Checked = !this->CheckBox_Reconstruction3DSegments->Checked&&this->CheckBox_Reconstruction3DSegments->Checked;
+		  if (!this->CheckBox_Reconstruction3DSegments->Checked) distance_z = 600.0f;
+		 }
 private: System::Void CheckBox_ReconstructionInputData_CheckedChanged(System::Object^  sender, System::EventArgs^  e) 
 		 {
 		  this->CheckBox_Gradients->Checked = !this->CheckBox_ReconstructionInputData->Checked&&this->CheckBox_Gradients->Checked;
 		  this->CheckBox_Localization->Checked = !this->CheckBox_ReconstructionInputData->Checked&&this->CheckBox_Localization->Checked;
 		  this->CheckBoxClusters->Checked = !this->CheckBox_ReconstructionInputData->Checked&&this->CheckBoxClusters->Checked;
+		  this->CheckBox_Reconstruction3DSegments->Checked = !this->CheckBox_ReconstructionInputData->Checked&&this->CheckBox_Reconstruction3DSegments->Checked;
 		  if (!this->CheckBox_ReconstructionInputData->Checked) distance_z = 600.0f;
 		 }
 private: System::Void CheckBox_Gradients_CheckedChanged(System::Object^  sender, System::EventArgs^  e) 
@@ -4036,12 +4050,14 @@ private: System::Void CheckBox_Gradients_CheckedChanged(System::Object^  sender,
 		  this->CheckBox_Localization->Checked = !this->CheckBox_Gradients->Checked&&this->CheckBox_Localization->Checked;
           this->CheckBoxClusters->Checked = !this->CheckBox_Gradients->Checked&&this->CheckBoxClusters->Checked;
 		  this->CheckBox_ReconstructionInputData->Checked = !this->CheckBox_Gradients->Checked&&this->CheckBox_ReconstructionInputData->Checked;
+		  this->CheckBox_Reconstruction3DSegments->Checked = !this->CheckBox_Gradients->Checked&&this->CheckBox_Reconstruction3DSegments->Checked;
 		 }
 private: System::Void CheckBox_Localization_CheckedChanged(System::Object^  sender, System::EventArgs^  e) 
 		 {
 		  this->CheckBox_Gradients->Checked = !this->CheckBox_Localization->Checked&&this->CheckBox_Gradients->Checked;
           this->CheckBoxClusters->Checked = !this->CheckBox_Localization->Checked&&this->CheckBoxClusters->Checked;
 		  this->CheckBox_ReconstructionInputData->Checked = !this->CheckBox_Localization->Checked&&this->CheckBox_ReconstructionInputData->Checked;
+		  this->CheckBox_Reconstruction3DSegments->Checked = !this->CheckBox_Localization->Checked&&this->CheckBox_Reconstruction3DSegments->Checked;
 		 }
 private: System::Void TrackBar_MeshStepX_ValueChanged(System::Object^  sender, System::EventArgs^  e) 
 		 {
