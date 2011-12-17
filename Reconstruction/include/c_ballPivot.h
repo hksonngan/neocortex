@@ -1006,14 +1006,14 @@ ballPivot::ballPivot(ScanData *InputData, TVoxelSegments *VoxelSegments, int Seg
  for (int k = 0; k < InputData->sizeZ; ++k)
  if (VoxelSegments[k*InputData->sizeX*InputData->sizeY+j*InputData->sizeX+i].SegmentIndex_3D == SegmentIndex) 
  {
-  COUNT_OF_ALL_POINTS++;
+  //COUNT_OF_ALL_POINTS++;
   if (!IS_USED_X[i]) {COUNT_OF_POINTS_X++; Index_X.push_back(i); IS_USED_X[i] = true;}
   if (!IS_USED_Y[j]) {COUNT_OF_POINTS_Y++; Index_Y.push_back(j); IS_USED_Y[j] = true;}
   if (!IS_USED_Z[k]) {COUNT_OF_POINTS_Z++; Index_Z.push_back(k); IS_USED_Z[k] = true;}
  }
 
  COUNT_OF_POINTS_X /= STEP_X; COUNT_OF_POINTS_Y /= STEP_Y; COUNT_OF_POINTS_Z /= STEP_Z;
- data_size.x=COUNT_OF_POINTS_X; data_size.y=COUNT_OF_POINTS_Y; data_size.z=COUNT_OF_POINTS_Z;
+ data_size.x=STEP_X*COUNT_OF_POINTS_X; data_size.y=STEP_Y*COUNT_OF_POINTS_Y; data_size.z=STEP_Z*COUNT_OF_POINTS_Z;
  radius=8;
  camera_pos=c_point(0,0,-10);
  angle=5.0f*M_PI/180;
