@@ -7,44 +7,47 @@
 #include <iostream>
 #include <fstream>
 
-
-
 using namespace cv;
 using namespace std;
 
 struct Parameters
 {
 	char* winname;
-	Mat image, wind;		//исходное изображение и окно, которое видит пользователь
+	Mat image, wind, image_backup;		//исходное изображение и окно, которое видит пользователь
 	int brushSize, numslices;			
-	Point	Center;			//центр исходного контура
-	int Xmod, Ymod;			//модификаторы для точек
-	int resX, resY;			//храним разрешение 
-	vector <Point> points;//исходные точки контура
+	Point	Center;						//центр исходного контура (не нужен)
+	int Xmod, Ymod;						//модификаторы для точек
+	int resX, resY;						//храним разрешение 
+	vector <Point> points;				//исходные точки контура
 	vector <vector <Point> > ResPoints;	//все результаты сразу
 	vector <char *> FNames;				//имена файлов
 	int CurrentSlice;					//текущий слой (для вывода результата)
+	int alpha, beta, gamma, iter;
+	int a,b;							//параметры эллипса
+	bool POINT, RECT, ELLIPSE;			// способ задания начального контура
 
-	Parameters(Mat& _image, char* _winname, Mat& _wind, int _Xmod, int _Ymod, int _ns, vector < char *> _FNS)
+	Parameters()
 	{
-		winname = _winname;
-		image = _image;
-		wind= _wind;
-		Xmod= _Xmod;
-		Ymod= _Ymod;
-		if (image.cols<800)
-			resX=image.cols;
-		else
-			resX=800;
-		if (image.rows<600)
-			resY=image.rows;
-		else resY=600;
-		brushSize=4;
-		numslices=_ns;
-		FNames=_FNS;
 		CurrentSlice=0;
+		brushSize=4;
+		//дефолтные параметры для змейки
+		alpha=1;
+		beta=2;
+		gamma=15;
+		iter=30;
+		winname="Source";
+		Xmod=0;
+		Ymod=0;
+		//дефолтные параметры эллипса
+		a=3;
+		b=6;
+		//для выбора метода выделения
+		POINT=true; RECT=false; ELLIPSE=false;
 	}
 };
+
+
+void refresh(Parameters &params);
 
 void onMouseEvent(int event, int x, int y, int flags, void* data)
 {
@@ -52,58 +55,129 @@ void onMouseEvent(int event, int x, int y, int flags, void* data)
 	if ((event == CV_EVENT_LBUTTONDOWN) )
 	{
 		Parameters* params = (Parameters*)data;
-		if (!params->points.empty())
+		if (params->POINT)
 		{
-			circle(params->image, Point(params->Center.x, params->Center.y), params->brushSize, Scalar(128, 128, 128));
-			circle(params->wind, Point(params->Center.x-params->Xmod, params->Center.y-params->Ymod), params->brushSize, Scalar(128, 128, 128));
-			params->points.clear();
+			if (!params->points.empty())
+			{
+				params->image_backup.copyTo(params->image);
+				params->points.clear();
+				refresh(*params);
+			}
+			params->points.push_back(Point(x+params->Xmod,y+params->Ymod));
+			circle(params->image, Point(x+params->Xmod, y+params->Ymod), params->brushSize, Scalar(0, 0, 255));
+			circle(params->wind, Point(x, y), params->brushSize, Scalar(0, 0, 255));
+			imshow(params->winname, params->wind);
 		}
-		params->Center=Point(x+params->Xmod,y+params->Ymod);
-		circle(params->image, Point(x+params->Xmod, y+params->Ymod), params->brushSize, Scalar(0, 0, 255));
-		circle(params->wind, Point(x, y), params->brushSize, Scalar(0, 0, 255));
-		//запоминаем и рисуем точки
-		params->points.push_back(Point(x+params->Xmod-params->brushSize,y+params->Ymod));
-		params->points.push_back(Point(x+params->Xmod,y+params->Ymod-params->brushSize));
-		params->points.push_back(Point(x+params->Xmod+params->brushSize,y+params->Ymod));
-		params->points.push_back(Point(x+params->Xmod,y+params->Ymod+params->brushSize));
-
-		params->image.at<Vec3b>(y+params->Ymod, x+params->Xmod-params->brushSize)[0]=0;
-		params->image.at<Vec3b>(y+params->Ymod, x+params->Xmod-params->brushSize)[1]=255;
-		params->image.at<Vec3b>(y+params->Ymod, x+params->Xmod-params->brushSize)[2]=0;
-
-		params->image.at<Vec3b>(y+params->Ymod-params->brushSize, x+params->Xmod)[0]=0;
-		params->image.at<Vec3b>(y+params->Ymod-params->brushSize, x+params->Xmod)[1]=255;
-		params->image.at<Vec3b>(y+params->Ymod-params->brushSize, x+params->Xmod)[2]=0;
-
-		params->image.at<Vec3b>(y+params->Ymod, x+params->Xmod+params->brushSize)[0]=0;
-		params->image.at<Vec3b>(y+params->Ymod, x+params->Xmod+params->brushSize)[1]=255;
-		params->image.at<Vec3b>(y+params->Ymod, x+params->Xmod+params->brushSize)[2]=0;
-
-		params->image.at<Vec3b>(y+params->Ymod+params->brushSize, x+params->Xmod)[0]=0;
-		params->image.at<Vec3b>(y+params->Ymod+params->brushSize, x+params->Xmod)[1]=255;
-		params->image.at<Vec3b>(y+params->Ymod+params->brushSize, x+params->Xmod)[2]=0;
-
-
-		params->wind.at<Vec3b>(y, x-params->brushSize)[0]=0;
-		params->wind.at<Vec3b>(y, x-params->brushSize)[1]=255;
-		params->wind.at<Vec3b>(y, x-params->brushSize)[2]=0;
-
-		params->wind.at<Vec3b>(y-params->brushSize, x)[0]=0;
-		params->wind.at<Vec3b>(y-params->brushSize, x)[1]=255;
-		params->wind.at<Vec3b>(y-params->brushSize, x)[2]=0;
-
-		params->wind.at<Vec3b>(y, x+params->brushSize)[0]=0;
-		params->wind.at<Vec3b>(y, x+params->brushSize)[1]=255;
-		params->wind.at<Vec3b>(y, x+params->brushSize)[2]=0;
-
-		params->wind.at<Vec3b>(y+params->brushSize, x)[0]=0;
-		params->wind.at<Vec3b>(y+params->brushSize, x)[1]=255;
-		params->wind.at<Vec3b>(y+params->brushSize, x)[2]=0;
-
-
-		imshow(params->winname, params->wind);
+		if (params->RECT)
+		{
+			params->points.push_back(Point(x+params->Xmod, y+params->Ymod));
+			if (params->points.size()>2)
+			{
+				params->points.clear();
+				params->image_backup.copyTo(params->image);
+				refresh(*params);
+				params->points.push_back(Point(x+params->Xmod, y+params->Ymod));
+			}
+			if (params->points.size()==2)
+			{
+				rectangle(params->image, params->points[0], params->points[1], Scalar(0,0,255));
+				rectangle(params->wind, params->points[0]-Point(params->Xmod, params->Ymod),
+							params->points[1]-Point(params->Xmod, params->Ymod), Scalar(0,0,255));
+			}
+			circle(params->image, Point(x+params->Xmod, y+params->Ymod), params->brushSize, Scalar(0, 0, 255));
+			circle(params->wind, Point(x, y), params->brushSize, Scalar(0, 0, 255));
+			imshow(params->winname, params->wind);
+		}
+		if (params->ELLIPSE)
+		{
+			if(!params->points.empty())
+			{
+				params->image_backup.copyTo(params->image);
+				params->points.clear();
+				refresh(*params);
+			}
+			params->points.push_back(Point(x+params->Xmod,y+params->Ymod));
+			ellipse(params->wind, Point(x, y), Size(params->a, params->b), 0, 0, 360, Scalar(0,0,255));
+			ellipse(params->image, Point(x+params->Xmod, y+params->Ymod), Size(params->a, params->b), 0, 0, 360, Scalar(0,0,255));
+			imshow(params->winname, params->wind);
+		}
 	}
 }
+
+//init method's callbacks
+void buttonPointCallback (int state, void* data)
+{
+	if (state == 1)
+	{
+		Parameters *params= (Parameters*) data; 
+		params->ELLIPSE=false;
+		params->RECT=false;
+		params->POINT=true;
+		if (!params->points.empty())
+		{
+			params->points.clear();
+			params->image_backup.copyTo(params->image);
+			refresh(*params);
+			imshow(params->winname, params->wind);
+		}
+	}
+}
+void buttonRectCallback (int state, void* data)
+{
+	if (state == 1)
+	{
+		Parameters *params= (Parameters*) data; 
+		params->ELLIPSE=false;
+		params->RECT=true;
+		params->POINT=false;
+		if (!params->points.empty())
+		{
+			params->points.clear();
+			params->image_backup.copyTo(params->image);
+			refresh(*params);
+			imshow(params->winname, params->wind);
+		}
+	}
+}
+void buttonEllCallback (int state, void* data)
+{
+	if (state == 1)
+	{
+		Parameters *params= (Parameters*) data; 
+		params->ELLIPSE=true;
+		params->RECT=false;
+		params->POINT=false;
+		if (!params->points.empty())
+		{
+			params->points.clear();
+			params->image_backup.copyTo(params->image);
+			refresh(*params);
+			imshow(params->winname, params->wind);
+		}
+	}
+}
+void attachInitMethods(Parameters &params)
+{
+	//default
+	if (params.POINT)
+		createButton("Point", buttonPointCallback, &params, CV_RADIOBOX, 1);
+	else
+		createButton("Point", buttonPointCallback, &params, CV_RADIOBOX, 0);
+	//rectangle
+	if (params.RECT)
+		createButton("Rect", buttonRectCallback, &params, CV_RADIOBOX, 1);
+	else
+		createButton("Rect", buttonRectCallback, &params, CV_RADIOBOX, 0);
+	//ellipse
+	if (params.ELLIPSE)
+		createButton("Ell", buttonEllCallback, &params, CV_RADIOBOX, 1);
+	else
+		createButton("Ell", buttonEllCallback, &params, CV_RADIOBOX, 0);
+}
+
+//dummy mouse event
+void dummyEvent(int event, int x, int y, int flags, void* data)
+{}
 
 //при изменении ползунков X_Offset и  Y_Offset
 void XEvent(int position, void* data)
@@ -122,20 +196,22 @@ void refresh(Parameters &params)
 			params.wind.at<Vec3b>(y-params.Ymod,x-params.Xmod)=params.image.at<Vec3b>(y,x);
 }
 
-void attachTB(char* winName, int &a, int &b, int &g, int &iters)
+void attachTB(Parameters &params)
 {
-	createTrackbar("Alpha", winName, &a, 100);
-	createTrackbar("Beta", winName, &b, 100);
-	createTrackbar("Gamma", winName, &g, 100);
-	createTrackbar("Iterations", winName, &iters, 1000);
+	createTrackbar("Alpha", params.winname, &params.alpha, 100);
+	createTrackbar("Beta", params.winname, &params.beta, 100);
+	createTrackbar("Gamma", params.winname, &params.gamma, 100);
+	createTrackbar("Iterations", params.winname, &params.iter, 1000);
 }
 
-void attachSliders(char *winName, Parameters &params)
+void attachSliders(Parameters &params)
 {
 	if (params.image.cols>800)
-		createTrackbar("X_Offset", winName, &params.Xmod, params.image.cols-params.resX-1, XEvent, &params);
+		createTrackbar("X_Offset", params.winname, &params.Xmod, params.image.cols-params.resX-1, XEvent, &params);
 	if (params.image.rows>600)
-		createTrackbar("Y_Offset", winName, &params.Ymod, params.image.rows-params.resY-1, XEvent, &params);
+		createTrackbar("Y_Offset", params.winname, &params.Ymod, params.image.rows-params.resY-1, XEvent, &params);
+	createTrackbar("A", params.winname, &params.a, 50);
+	createTrackbar("B", params.winname, &params.b, 50);
 }
 //gthpfuhe;ftv rfhnbyre
 void ReloadSlice(int position, void* data)
@@ -143,18 +219,19 @@ void ReloadSlice(int position, void* data)
 	Parameters* params = (Parameters*)data;
 
 	params->image=imread(params->FNames[position], 1);
-	for (int i=0; i<params->ResPoints[position].size(); i++)
-	{
-		circle(params->image, params->ResPoints[position][i], 3, Scalar(0, 0, 255), -1);
-	}
+	if (!params->ResPoints.empty())
+		for (int i=0; i<params->ResPoints[position].size(); i++)
+		{
+			circle(params->image, params->ResPoints[position][i], 3, Scalar(0, 0, 255), -1);
+		}
 	refresh(*params);
 	imshow(params->winname, params->wind);
 }
 
-void attachSliceSlider(char* winname, Parameters &params)
+void attachSliceSlider(Parameters &params)
 {
 	if (params.numslices>1)
-		createTrackbar("Slice", winname, &params.CurrentSlice, params.numslices-1, ReloadSlice, &params);
+		createTrackbar("Slice", params.winname, &params.CurrentSlice, params.numslices-1, ReloadSlice, &params);
 }
 //Экспериментально (сглаживаем возможный шум)
 void preprocess(Mat& img)
@@ -163,23 +240,43 @@ void preprocess(Mat& img)
 	medianBlur(img, img, 5);
 }
 
+bool isInputCorrect(Parameters &params)
+{
+	if (params.POINT || params.ELLIPSE)
+		{
+			if (params.points.empty())
+			{
+				cout<<"Error, no initial point"<<endl;
+				return false;
+			}
+			if (params.ELLIPSE && (params.a < 2 || params.b < 2 ) )
+			{
+				cout<<"Error, wrong ellipse parameters"<<endl;
+				return false;
+			}
+		}
+		if (params.RECT)
+		{
+			if (params.points.empty() || params.points.size() < 2)
+			{
+				cout<<"Error, no or too few initial points"<<endl;
+				params.points.clear();
+				return false;
+			}
+		}
+		return true;
+}
+
 int main (int argc, char *argv[])
 {
-	int AIV, BIV, GIV, SITERS;		//параметры метода для слайдеров
-	int LXmod=0, LYmod=0;			//помним где мы есть
-	Mat window;						//видимая часть изображения
-	Mat src_1ch, src_3ch, fake_src_3ch;
-	char* winName="Source";
+	Parameters params;
+	Mat src_1ch;
 	char Pressed;							//нажатая клавиша
-	Texture2D *img;					//
+	Texture2D *img;					
 	TextureData2D *data; 
 	ShaderSnake *Snake;
 
 	//load files
-	int numfiles;
-	vector <char *> fnames;
-
-	//load file
 	char fname[256]="../Data/list.lst";
 	cout<<"Enter path to list-file: "<<endl;
 	cin>>fname;
@@ -195,51 +292,45 @@ int main (int argc, char *argv[])
 	while (!ifs.eof()) 
 	{
 		char * str=new char [300];
-
 		ifs>>str;
-		fnames.push_back(str);
+		params.FNames.push_back(str);
 	}
-	numfiles=fnames.size();
+	params.numslices=params.FNames.size();
 		
-	//считываем картинку средствами OpenCV
-		glfwInit();
-		glfwOpenWindowHint(GLFW_WINDOW_NO_RESIZE, 1);
-		if(!glfwOpenWindow(1, 1, 0, 0, 0, 0, 16, 0, GLFW_WINDOW))
-		{
-			glfwTerminate(); 
-			MessageBoxA(0, lpszGlfwError, "Fatal", 0);
-			return 1;
-		}
-		glfwSetWindowTitle("Output window");
+	//инициализируем  glfw (для шейдеров)
+	glfwInit();
+	glfwOpenWindowHint(GLFW_WINDOW_NO_RESIZE, 1);
+	if(!glfwOpenWindow(1, 1, 0, 0, 0, 0, 16, 0, GLFW_WINDOW))
+	{
+		glfwTerminate(); 
+		MessageBoxA(0, lpszGlfwError, "Fatal", 0);
+		return 1;
+	}
+	glfwSetWindowTitle("Output window");
 		
-		//параметры змейки
-		float alpha=1.0f, beta=2.0f, gamma=15.0f;
-		//целые значения для alpha, beta и gamma
-		AIV=(int)alpha;
-		BIV=(int)beta;
-		GIV=(int)gamma;
-		SITERS=30;
+	namedWindow(params.winname,CV_GUI_EXPANDED|CV_WINDOW_NORMAL|CV_WINDOW_KEEPRATIO);
+	setWindowProperty(params.winname,CV_WND_PROP_FULLSCREEN,CV_WINDOW_FULLSCREEN);
+	//цепляем сразу же (чтобы избежать дублирования)
+	attachInitMethods(params);
 
-
+	//основной цикл
 	while(1)
 	{
-		src_3ch=imread(fnames[0],1);
-
+		params.image=imread(params.FNames[params.CurrentSlice],1);
+		//устанавливаем разрешение окна
+		if (params.image.cols<800)
+			params.resX=params.image.cols;
+		else
+			params.resX=800;
+		if (params.image.rows<600)
+			params.resY=params.image.rows;
+		else 
+			params.resY=600;
+		params.wind=Mat::zeros(params.resY, params.resX, CV_8UC3);
+		params.image.copyTo(params.image_backup);
 		//создаем окно просмотра
-		if ((src_3ch.rows>600)&&(src_3ch.cols>800))
-			window=Mat::zeros(600, 800, CV_8UC3);
-		if ((src_3ch.rows>600)&&(src_3ch.cols<800))
-			window=Mat::zeros(600, src_3ch.cols, CV_8UC3);
-		if ((src_3ch.rows<600)&&(src_3ch.cols>800))
-			window=Mat::zeros(src_3ch.rows, 800, CV_8UC3);
-		if ((src_3ch.rows<600)&&(src_3ch.cols<800))
-			window=Mat::zeros(src_3ch.rows, src_3ch.cols, CV_8UC3);
-
-		//	cvtColor(src_3ch, src_1ch, CV_RGB2GRAY);
-		src_3ch.copyTo(fake_src_3ch);
 
 		Pressed=-1;
-
 
 		//предобработка исходного изображения
 		//по совету из презентации Nick Govier и David Newman
@@ -247,20 +338,16 @@ int main (int argc, char *argv[])
 		//т.к. алгоритм очень чувствителен к шуму
 		//	preprocess(src_1ch);
 
-		//задаем параметры
-		Parameters params(fake_src_3ch, "Source", window, LXmod, LYmod, numfiles, fnames);
 		refresh(params);
-
 		//показываем исходное изображение
-		namedWindow("Source",CV_GUI_EXPANDED|CV_WINDOW_NORMAL|CV_WINDOW_KEEPRATIO);
-		setWindowProperty("Source",CV_WND_PROP_FULLSCREEN,CV_WINDOW_FULLSCREEN);
-		imshow("Source", params.wind);
+		imshow(params.winname, params.wind);
 
-		//рисуем на картинке точки
-		cvSetMouseCallback(winName, onMouseEvent, &params);
-
-		attachTB("Source", AIV, BIV, GIV, SITERS);
-		attachSliders("Source", params);
+		//устанавливаем мышиный callback
+		cvSetMouseCallback(params.winname, onMouseEvent, &params);
+		//цепляем слайдеры
+		attachTB(params);
+		attachSliders(params);
+		attachSliceSlider(params);
 
 		//ждем ввода
 		Pressed=-1;
@@ -268,17 +355,19 @@ int main (int argc, char *argv[])
 			Pressed=waitKey(0);
 		if(Pressed==27)
 			break;
+			
+		//проверяем корректность ввода
+		if (!isInputCorrect(params))
+			continue;
 
 		//удаляем лишнее
-		src_3ch.~Mat();
-		fake_src_3ch.~Mat();
+		params.image.~Mat();
+		params.image_backup.~Mat();
 
 		for (int l=0; l< params.numslices; l++)
 		{
-
 			src_1ch=imread(params.FNames[l], 0);
 			preprocess(src_1ch);
-			//основная последовательность
 			data = new TextureData2D(src_1ch.cols, src_1ch.rows, 3);
 			if (!data)
 			{
@@ -296,30 +385,35 @@ int main (int argc, char *argv[])
 
 			for (int y = 0; y <  src_1ch.rows; y++)
 			{
-
 				for (int x = 0; x < src_1ch.cols; x++)
 				{
 					uchar pixel = src_1ch.at<uchar>(y,x);
 					data->Pixel<Vector3D> (x,abs(y-src_1ch.rows+1)) = 
 						Vector3D (	(float)pixel / 255.0F,
-						(float)pixel / 255.0F,
-						(float)pixel / 255.0F);
+									(float)pixel / 255.0F,
+									(float)pixel / 255.0F);
 				}
 			}
 
-	//		data->~TextureData2D();
 			//производим итерации змейки
 			SnakeParams sparam;
-			sparam.alpha=(float) AIV;
-			sparam.beta=(float) BIV;
-			sparam.gamma=(float) GIV;
+			sparam.alpha=(float) params.alpha;
+			sparam.beta=(float) params.beta;
+			sparam.gamma=(float) params.gamma;
 			Snake=new ShaderSnake();
 			Snake->Init();
 			Snake->GetReady();
 			Snake->FixParams(img, sparam);
-			Snake->AddSeed(params.Center.x, abs(params.Center.y-src_1ch.rows+1));
+			if (params.POINT)
+				Snake->AddSeed(params.points[0].x, abs(params.points[0].y-src_1ch.rows+1));
+			if (params.ELLIPSE)
+				Snake->AddSeed_Ell(	params.points[0].x, abs(params.points[0].y-src_1ch.rows+1),
+									params.a, params.b);
+			if (params.RECT)
+				Snake->AddSeed_Rect(params.points[0].x, abs(params.points[0].y-src_1ch.rows+1),
+									params.points[1].x, abs(params.points[1].y-src_1ch.rows+1));
 
-			for (int i=0; i<SITERS; i++)
+			for (int i=0; i<params.iter; i++)
 				Snake->Iterate();
 
 			//достаем точки
@@ -333,26 +427,26 @@ int main (int argc, char *argv[])
 				temp=ResPoints->Data->Pixel<Vector3D>(i,0);
 				OCV_ResPoints.push_back(Point(temp.X, abs(temp.Y-src_1ch.rows+1)));
 			}
-			//закидываем се впараметры
+			//закидываем все в параметры
 			params.ResPoints.push_back(OCV_ResPoints);
-			//основная последовательность
 			src_1ch.~Mat();
 			Snake->~ShaderSnake();
-			data->~TextureData2D();
+	//		data->~TextureData2D();
 			img->~Texture2D();
-			//			ResPoints=NULL;
+			//ResPoints=NULL;
 		}
 
 		//вывод
-		attachSliceSlider("Source", params);
-
-		params.image=imread(params.FNames[0], 1);
-		for (int i=0; i<params.ResPoints[0].size(); i++)
+		params.image=imread(params.FNames[params.CurrentSlice], 1);
+		for (int i=0; i<params.ResPoints[params.CurrentSlice].size(); i++)
 		{
-			circle(params.image, params.ResPoints[0][i], 3, Scalar(0, 0, 255), -1);
+			circle(params.image, params.ResPoints[params.CurrentSlice][i], 3, Scalar(0, 0, 255), -1);
 		}
 		refresh(params);
-		imshow("Source", params.wind);
+		params.points.clear();
+		imshow(params.winname, params.wind);
+		//запрещаем тыкать мышью (пока)
+		cvSetMouseCallback(params.winname, dummyEvent, &params);
 
 		//ждем ввода
 		Pressed=-1;
@@ -360,12 +454,9 @@ int main (int argc, char *argv[])
 			Pressed=waitKey(0);
 		if(Pressed==27)
 			break;
-
+	//	cvDestroyWindow(params.winname);
 		params.ResPoints.clear();
 		params.image.~Mat();
-		LXmod=params.Xmod;
-		LYmod=params.Ymod;
-
 	}
 	return 0;
 }

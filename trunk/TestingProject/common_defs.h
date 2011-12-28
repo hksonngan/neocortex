@@ -5,22 +5,16 @@
 #include <math.h>
 #include <float.h>
 #include <typeinfo>
-#include "GLee/glee.h"
-#include <GL/gl.h>
-//#include <glu.h>
-//#include <glaux.h>
-#include <Base Render Library/Keyboard.h>
-#include <Base Render Library/Mouse.h>
-#include <Base Render Library/FrameBuffer.h>
+#include "GLee\glee.h"
+#include <gl.h>
+#include <Base Render Library\Keyboard.h>
+#include <Base Render Library\Mouse.h>
+#include <Base Render Library\FrameBuffer.h>
 
 #pragma comment(lib,"opengl32.lib")
 #pragma comment(lib,"glut32.lib") 
-
-//#pragma comment(lib,"glu32.lib")
-//#pragma comment(lib,"glaux.lib") 
 #pragma comment(lib,"glfw.lib") 
-//#pragma comment(lib,"SDL.lib")
-//#pragma comment(lib,"SDL_image.lib") 
+
 
 using namespace BMath;
 using namespace Render;
@@ -56,6 +50,7 @@ const int MAX_FILE_NAME_LENGTH = 40;
 const int MAX_FILTER_NAME_LENGTH = 30;
 const int TMP_BUFFER_SIZE = 30;
 const int MAX_IMAGE_SIZE = 2048;
+
 
 const char lpszBadFileFormat[] = "Bad image format.";
 const char lpszReachedMaxCount[] = "Max image count reached. Please, restart application to clear the list.";

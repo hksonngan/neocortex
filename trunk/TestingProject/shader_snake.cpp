@@ -29,6 +29,68 @@ void ShaderSnake::Cleanup()
 }
 
 
+
+void ShaderSnake::AddSeed_Rect(int x1, int y1, int x2, int y2 )
+{
+	Texture2D *points;
+	if (m_odd_iter)
+	{
+		points = m_points_2;
+	}
+	else
+	{
+		points = m_points_1;
+	}
+	//m_size = Pts.size();
+	int forx=abs(x1-x2)/(m_params.window-1);
+	int fory=abs(y2-y1)/(m_params.window-1);
+
+	m_size=forx*2+fory*2;
+
+
+	for (int i=0; i<forx; i++)
+	{
+		points->Data->Pixel<Vector3D>(i,0)=Vector3D(x1+i*(m_params.window-1), y1, 0.0);
+	}
+
+	for (int i=forx; i<forx+fory; ++i)
+	{
+		points->Data->Pixel<Vector3D>(i,0)=Vector3D(x2, y1-(i-forx)*(m_params.window), 0.0);
+	}
+
+	for (int i=forx+fory; i<2*forx+fory; ++i)
+	{
+		points->Data->Pixel<Vector3D>(i,0)=Vector3D(x2-(i-forx-fory)*(m_params.window-1), y2, 0.0);
+	}
+
+	for (int i=2*forx+fory; i<2*forx+2*fory; ++i)
+	{
+		points->Data->Pixel<Vector3D>(i,0)=Vector3D(x1, y2-(i-2*forx+fory)*(m_params.window-1), 0.0);
+	}
+
+	points->Setup();
+}
+void ShaderSnake::AddSeed_Ell(int x, int y, int a, int b)
+{
+	Texture2D *points;
+	if (m_odd_iter)
+	{
+		points = m_points_2;
+	}
+	else
+	{
+		points = m_points_1;
+	}
+	//m_size = Pts.size();
+	m_size=2*(a+b);
+	float step=2*3.14/m_size;
+	for (float i=0; i<m_size; i++)
+		points->Data->Pixel<Vector3D>(i,0)=Vector3D((int)a*cos(i*step)+x, (int)b*sin(i*step)+y, 0.0);
+	points->Setup();
+}
+
+
+
 bool ShaderSnake::Init()
 {
 	if (m_shader)
@@ -206,7 +268,7 @@ void ShaderSnake::AddSeed(int x, int y)
 	points->Setup();
 }
 
-bool ShaderSnake::FixParams(Texture2D* image, SnakeParams& params)
+bool ShaderSnake::FixParams(Texture2D* &image, SnakeParams& params)
 {
 	if (!image)
 	{
@@ -217,8 +279,9 @@ bool ShaderSnake::FixParams(Texture2D* image, SnakeParams& params)
 
 	// Prepare image(convert to normalized single-channel)
 
-	TextureData2D* data  = new TextureData2D(image->Data->GetWidth(), image->Data->GetHeight());
-	m_image = new Texture2D(data, SNAKE_IMAGE_FBO, GL_TEXTURE_RECTANGLE_ARB);
+//	TextureData2D* data  = new TextureData2D(image->Data->GetWidth(), image->Data->GetHeight());
+//	m_image = new Texture2D(data, SNAKE_IMAGE_FBO, GL_TEXTURE_RECTANGLE_ARB);
+	m_image=image;
 	int w = image->Data->GetWidth();
 	int h = image->Data->GetHeight();
 
@@ -230,7 +293,8 @@ bool ShaderSnake::FixParams(Texture2D* image, SnakeParams& params)
 	{
 		for (j = 0; j < w; j++)
 		{
-			Vector3D pixel = image->Data->Pixel<Vector3D>(j, i);
+			//Vector3D pixel = image->Data->Pixel<Vector3D>(j, i);
+			Vector3D pixel = m_image->Data->Pixel<Vector3D>(j, i);
 			float e = Dot(pixel, Vector3D(1.0, 1.0, 1.0));
 			if (e > e_max)
 			{
@@ -471,5 +535,6 @@ ShaderSnake::~ShaderSnake()
 	delete m_shader;
 	m_shader = NULL;
 
-	m_image->~Texture2D();
+//	if (m_image)
+//		m_image->~Texture2D();
 }

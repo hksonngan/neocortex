@@ -60,9 +60,10 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="OpenCL.lib opencv_core231d.lib opencv_highgui231d.lib opencv_video231d.lib opencv_ml231d.lib opencv_legacy231d.lib opencv_objdetect231d.lib"
+				AdditionalDependencies="OpenCL.lib opencv_core231d.lib opencv_highgui231d.lib opencv_video231d.lib opencv_ml231d.lib opencv_legacy231d.lib opencv_objdetect231d.lib opengl32.lib glut32.lib glu32.lib glaux.lib glfw.lib"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="..\Common\;..\Common\OpenCV\build\x86\vc9\lib;..\Common\GLFW\Lib"
+				IgnoreDefaultLibraryNames="libc.lib"
 				GenerateDebugInformation="true"
 				AssemblyDebug="1"
 				SubSystem="2"

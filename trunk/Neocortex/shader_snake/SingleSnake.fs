@@ -15,17 +15,28 @@ uniform vec3  vParam;
 void main()
 {
 	int i = int(gl_TexCoord[0].x);
-	
-	//int temp=int ((i - 1)/iSize);
-	//int Lcoord=(i - 1) - temp * iSize;
-	//temp=int( (i+1)/iSize );
-	//int Rcoord=(i + 1) - temp * iSize;
-	
-	
-	
-	vec3 p_left = texture2DRect(Points, vec2((i - 1) % iSize, 0)).xyz;
+
+	vec3 p_left;
 	vec3 p_center = texture2DRect(Points, vec2(i, 0)).xyz;
-	vec3 p_right = texture2DRect(Points, vec2((i + 1) % iSize, 0)).xyz;
+	vec3 p_right;
+	if (i == 0)
+	{
+		p_left = texture2DRect(Points, vec2(iSize, 0)).xyz;
+	}
+	else
+	{
+		p_left = texture2DRect(Points, vec2(i - 1, 0)).xyz;
+
+	}
+	if (i == iSize - 1)
+	{
+		p_right = texture2DRect(Points, vec2(0, 0)).xyz;
+	}
+	else
+	{
+		p_right = texture2DRect(Points, vec2(i + 1, 0)).xyz;
+
+	}
 		
 	// Window region
 	float fWindow = float(iWindow);
@@ -53,8 +64,7 @@ void main()
 			vec3 p = vec3(x, y, 0.0);
 
 			e_map[m].x = abs(fAvgDist - distance(p_left, p) - distance(p_right, p));
-			e_map[m].y= length(2 * p - p_left - p_right)*length(2 * p - p_left - p_right);
-			//e_map[m].y = pow(length(2 * p - p_left - p_right), 2);//old
+			e_map[m].y = pow(length(2 * p - p_left - p_right), 2.0);
 			e_map[m].z = distance(p, nrm);
 		
 			max_e = max(e_map[m], max_e);
@@ -79,14 +89,14 @@ void main()
 	// Apply parameters and find the least energy point
 	float min_rslt = 1e38;
 	float rslt;
-	vec3 out_point;
+	vec3 out_point=vec3(0.0,0.0,0.0);
 	
 	m = 0;
 	for (y = y_s; y <= y_e; y++)
 	{
 		for (x = x_s; x <= x_e; x++)
 		{
-			rslt = dot(vParam, e_map[m]) + fGamma * texture2DRect(Image, vec2(x, y)).z ;
+			rslt = dot(vParam, e_map[m]) + fGamma * texture2DRect(Image, vec2(x, y)).x ;
 			if (rslt < min_rslt)
 			{
 				min_rslt = rslt;
