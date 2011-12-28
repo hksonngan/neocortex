@@ -4,7 +4,7 @@
 #pragma once
 
 //параметры змейки
-struct SnakeParams{
+ struct SnakeParams{
 
 	float alpha;
 	float beta;
@@ -24,6 +24,7 @@ struct SnakeParams{
 };
 
 
+
 class ShaderSnake
 {
 public:
@@ -37,8 +38,12 @@ public:
 	// Sets initial snake position(replaces old with a new if called multiple times)
 	void AddSeed(int x, int y);
 
+	void AddSeed_Rect(int x1, int y1, int x2, int y2);
+
+	void AddSeed_Ell(int x, int y, int a, int b);
+
 	// Sets snake params and image to work with
-	bool FixParams(Texture2D* image, SnakeParams& params);
+	bool FixParams(Texture2D* &image, SnakeParams& params);
 
 	// Returns pointer to algorithm output
 	Texture2D* Output() const;
