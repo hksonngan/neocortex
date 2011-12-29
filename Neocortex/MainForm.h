@@ -166,6 +166,7 @@ namespace Neocortex
 		int MeshStep_X, MeshStep_Y, MeshStep_Z;		// шаги сетки вдоль координатных осей
 		GLfloat MinVoxelDensity;					// минимальное значение плотности вокселов
 		GLfloat MaxVoxelDensity;					// максимальное значение плотности вокселов
+		vector <Point2i> *SnakePoints;	// точки активного контура дл€ всех слоев
 		
 	protected: 
 
@@ -372,9 +373,10 @@ namespace Neocortex
 		private: System::Windows::Forms::Button^ ButtonReconstructionData;
 		private: System::Windows::Forms::Button^ ButtonReconstructionSegments;
 private: System::Windows::Forms::CheckBox^  CheckBox_ReconstructionInputData;
+private: System::Windows::Forms::TrackBar^  TrackBar_SnakeWindow;
 
 
-private: System::Windows::Forms::TrackBar^  trackBar1;
+
 private: System::Windows::Forms::Label^  label1;
 private: System::Windows::Forms::CheckBox^  CheckBox_Reconstruction3DSegments;
 private: System::Windows::Forms::Label^  Label_MaxVoxelsDensity;
@@ -486,7 +488,7 @@ private: System::ComponentModel::IContainer^  components;
 			this->RadioButtonTextures_2D = (gcnew System::Windows::Forms::RadioButton());
 			this->Localization = (gcnew System::Windows::Forms::TabPage());
 			this->label1 = (gcnew System::Windows::Forms::Label());
-			this->trackBar1 = (gcnew System::Windows::Forms::TrackBar());
+			this->TrackBar_SnakeWindow = (gcnew System::Windows::Forms::TrackBar());
 			this->CheckBox_Localization = (gcnew System::Windows::Forms::CheckBox());
 			this->TextBox_PointY = (gcnew System::Windows::Forms::TextBox());
 			this->TextBox_PointX = (gcnew System::Windows::Forms::TextBox());
@@ -543,7 +545,7 @@ private: System::ComponentModel::IContainer^  components;
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->TrackBar_BrightnessMult))->BeginInit();
 			this->GroupBox_Methods->SuspendLayout();
 			this->Localization->SuspendLayout();
-			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->trackBar1))->BeginInit();
+			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->TrackBar_SnakeWindow))->BeginInit();
 			this->GroupBox_SnakeParameters->SuspendLayout();
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->TrackBar_IterationsNumber))->BeginInit();
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->TrackBar_GammaValue))->BeginInit();
@@ -572,7 +574,7 @@ private: System::ComponentModel::IContainer^  components;
 			this->ToolStripMenuItem_File->DropDownItems->AddRange(gcnew cli::array< System::Windows::Forms::ToolStripItem^  >(3) {this->ToolStripMenuItem_DownloadData, 
 				this->ToolStripMenuItem_ExportData, this->ToolStripMenuItem_Exit});
 			this->ToolStripMenuItem_File->Name = L"ToolStripMenuItem_File";
-			this->ToolStripMenuItem_File->Size = System::Drawing::Size(48, 20);
+			this->ToolStripMenuItem_File->Size = System::Drawing::Size(45, 20);
 			this->ToolStripMenuItem_File->Text = L"‘айл";
 			// 
 			// ToolStripMenuItem_DownloadData
@@ -581,20 +583,20 @@ private: System::ComponentModel::IContainer^  components;
 				this->ToolStripMenuItem_FromFolder});
 			this->ToolStripMenuItem_DownloadData->Name = L"ToolStripMenuItem_DownloadData";
 			this->ToolStripMenuItem_DownloadData->ShortcutKeys = static_cast<System::Windows::Forms::Keys>((System::Windows::Forms::Keys::Control | System::Windows::Forms::Keys::O));
-			this->ToolStripMenuItem_DownloadData->Size = System::Drawing::Size(215, 22);
+			this->ToolStripMenuItem_DownloadData->Size = System::Drawing::Size(219, 22);
 			this->ToolStripMenuItem_DownloadData->Text = L"«агрузить данные";
 			// 
 			// ToolStripMenuItem_FromBinFile
 			// 
 			this->ToolStripMenuItem_FromBinFile->Name = L"ToolStripMenuItem_FromBinFile";
-			this->ToolStripMenuItem_FromBinFile->Size = System::Drawing::Size(157, 22);
+			this->ToolStripMenuItem_FromBinFile->Size = System::Drawing::Size(162, 22);
 			this->ToolStripMenuItem_FromBinFile->Text = L"»з bin-файла...";
 			this->ToolStripMenuItem_FromBinFile->Click += gcnew System::EventHandler(this, &MainForm::ToolStripMenuItem_DownloadFile_Click);
 			// 
 			// ToolStripMenuItem_FromFolder
 			// 
 			this->ToolStripMenuItem_FromFolder->Name = L"ToolStripMenuItem_FromFolder";
-			this->ToolStripMenuItem_FromFolder->Size = System::Drawing::Size(157, 22);
+			this->ToolStripMenuItem_FromFolder->Size = System::Drawing::Size(162, 22);
 			this->ToolStripMenuItem_FromFolder->Text = L"»з каталога...";
 			this->ToolStripMenuItem_FromFolder->Click += gcnew System::EventHandler(this, &MainForm::ToolStripMenuItem_DownloadFolder_Click);
 			// 
@@ -604,26 +606,26 @@ private: System::ComponentModel::IContainer^  components;
 				this->ToolStripMenuItem_ToFolder});
 			this->ToolStripMenuItem_ExportData->Name = L"ToolStripMenuItem_ExportData";
 			this->ToolStripMenuItem_ExportData->ShortcutKeys = static_cast<System::Windows::Forms::Keys>((System::Windows::Forms::Keys::Control | System::Windows::Forms::Keys::E));
-			this->ToolStripMenuItem_ExportData->Size = System::Drawing::Size(215, 22);
+			this->ToolStripMenuItem_ExportData->Size = System::Drawing::Size(219, 22);
 			this->ToolStripMenuItem_ExportData->Text = L"Ёкспорт данных";
 			// 
 			// ToolStripMenuItem_ToBinFile
 			// 
 			this->ToolStripMenuItem_ToBinFile->Name = L"ToolStripMenuItem_ToBinFile";
-			this->ToolStripMenuItem_ToBinFile->Size = System::Drawing::Size(158, 22);
+			this->ToolStripMenuItem_ToBinFile->Size = System::Drawing::Size(162, 22);
 			this->ToolStripMenuItem_ToBinFile->Text = L"¬ bin-формат...";
 			// 
 			// ToolStripMenuItem_ToFolder
 			// 
 			this->ToolStripMenuItem_ToFolder->Name = L"ToolStripMenuItem_ToFolder";
-			this->ToolStripMenuItem_ToFolder->Size = System::Drawing::Size(158, 22);
+			this->ToolStripMenuItem_ToFolder->Size = System::Drawing::Size(162, 22);
 			this->ToolStripMenuItem_ToFolder->Text = L"¬ каталог...";
 			// 
 			// ToolStripMenuItem_Exit
 			// 
 			this->ToolStripMenuItem_Exit->Name = L"ToolStripMenuItem_Exit";
 			this->ToolStripMenuItem_Exit->ShortcutKeys = static_cast<System::Windows::Forms::Keys>((System::Windows::Forms::Keys::Alt | System::Windows::Forms::Keys::F4));
-			this->ToolStripMenuItem_Exit->Size = System::Drawing::Size(215, 22);
+			this->ToolStripMenuItem_Exit->Size = System::Drawing::Size(219, 22);
 			this->ToolStripMenuItem_Exit->Text = L"¬ыход";
 			this->ToolStripMenuItem_Exit->Click += gcnew System::EventHandler(this, &MainForm::ToolStripMenuItem_Exit_Click);
 			// 
@@ -635,7 +637,7 @@ private: System::ComponentModel::IContainer^  components;
 			this->RenderingPanel->BackColor = System::Drawing::SystemColors::ControlText;
 			this->RenderingPanel->Location = System::Drawing::Point(3, 29);
 			this->RenderingPanel->Name = L"RenderingPanel";
-			this->RenderingPanel->Size = System::Drawing::Size(714, 891);
+			this->RenderingPanel->Size = System::Drawing::Size(714, 767);
 			this->RenderingPanel->TabIndex = 3;
 			this->RenderingPanel->MouseWheel += gcnew System::Windows::Forms::MouseEventHandler(this, &MainForm::RenderingPanel_MouseWheel);
 			this->RenderingPanel->PreviewKeyDown += gcnew System::Windows::Forms::PreviewKeyDownEventHandler(this, &MainForm::RenderingPanel_PreviewKeyDown);
@@ -859,7 +861,7 @@ private: System::ComponentModel::IContainer^  components;
 			this->Label_Status->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Bottom | System::Windows::Forms::AnchorStyles::Left) 
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->Label_Status->AutoSize = true;
-			this->Label_Status->Location = System::Drawing::Point(7, 924);
+			this->Label_Status->Location = System::Drawing::Point(7, 800);
 			this->Label_Status->Name = L"Label_Status";
 			this->Label_Status->Size = System::Drawing::Size(69, 13);
 			this->Label_Status->TabIndex = 12;
@@ -869,7 +871,7 @@ private: System::ComponentModel::IContainer^  components;
 			// 
 			this->ProgressBar_Iterations->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Bottom | System::Windows::Forms::AnchorStyles::Left) 
 				| System::Windows::Forms::AnchorStyles::Right));
-			this->ProgressBar_Iterations->Location = System::Drawing::Point(3, 945);
+			this->ProgressBar_Iterations->Location = System::Drawing::Point(3, 821);
 			this->ProgressBar_Iterations->Name = L"ProgressBar_Iterations";
 			this->ProgressBar_Iterations->Size = System::Drawing::Size(714, 23);
 			this->ProgressBar_Iterations->Step = 1;
@@ -879,7 +881,7 @@ private: System::ComponentModel::IContainer^  components;
 			// 
 			this->ProgressBar_Layers->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Bottom | System::Windows::Forms::AnchorStyles::Left) 
 				| System::Windows::Forms::AnchorStyles::Right));
-			this->ProgressBar_Layers->Location = System::Drawing::Point(3, 974);
+			this->ProgressBar_Layers->Location = System::Drawing::Point(3, 850);
 			this->ProgressBar_Layers->Name = L"ProgressBar_Layers";
 			this->ProgressBar_Layers->Size = System::Drawing::Size(714, 23);
 			this->ProgressBar_Layers->Step = 1;
@@ -1071,7 +1073,7 @@ private: System::ComponentModel::IContainer^  components;
 			this->TabControlOptions->Location = System::Drawing::Point(730, 28);
 			this->TabControlOptions->Name = L"TabControlOptions";
 			this->TabControlOptions->SelectedIndex = 0;
-			this->TabControlOptions->Size = System::Drawing::Size(543, 969);
+			this->TabControlOptions->Size = System::Drawing::Size(543, 845);
 			this->TabControlOptions->TabIndex = 19;
 			this->TabControlOptions->SelectedIndexChanged += gcnew System::EventHandler(this, &MainForm::TabControlOptions_SelectedIndexChanged);
 			// 
@@ -1087,7 +1089,7 @@ private: System::ComponentModel::IContainer^  components;
 			this->Information->Controls->Add(this->Label_FileSize);
 			this->Information->Location = System::Drawing::Point(4, 22);
 			this->Information->Name = L"Information";
-			this->Information->Size = System::Drawing::Size(535, 943);
+			this->Information->Size = System::Drawing::Size(535, 819);
 			this->Information->TabIndex = 4;
 			this->Information->Text = L"»нформаци€";
 			// 
@@ -1507,7 +1509,7 @@ private: System::ComponentModel::IContainer^  components;
 			// 
 			this->Localization->BackColor = System::Drawing::SystemColors::Control;
 			this->Localization->Controls->Add(this->label1);
-			this->Localization->Controls->Add(this->trackBar1);
+			this->Localization->Controls->Add(this->TrackBar_SnakeWindow);
 			this->Localization->Controls->Add(this->CheckBox_Localization);
 			this->Localization->Controls->Add(this->TextBox_PointY);
 			this->Localization->Controls->Add(this->TextBox_PointX);
@@ -1518,7 +1520,7 @@ private: System::ComponentModel::IContainer^  components;
 			this->Localization->Controls->Add(this->GroupBox_SnakeParameters);
 			this->Localization->Location = System::Drawing::Point(4, 22);
 			this->Localization->Name = L"Localization";
-			this->Localization->Size = System::Drawing::Size(535, 943);
+			this->Localization->Size = System::Drawing::Size(535, 819);
 			this->Localization->TabIndex = 3;
 			this->Localization->Text = L"Ћокализаци€";
 			// 
@@ -1531,14 +1533,14 @@ private: System::ComponentModel::IContainer^  components;
 			this->label1->TabIndex = 13;
 			this->label1->Text = L"ќкно дл€ построени€ карты энергии:";
 			// 
-			// trackBar1
+			// TrackBar_SnakeWindow
 			// 
-			this->trackBar1->Location = System::Drawing::Point(342, 331);
-			this->trackBar1->Minimum = 2;
-			this->trackBar1->Name = L"trackBar1";
-			this->trackBar1->Size = System::Drawing::Size(151, 45);
-			this->trackBar1->TabIndex = 12;
-			this->trackBar1->Value = 2;
+			this->TrackBar_SnakeWindow->Location = System::Drawing::Point(332, 328);
+			this->TrackBar_SnakeWindow->Minimum = 2;
+			this->TrackBar_SnakeWindow->Name = L"TrackBar_SnakeWindow";
+			this->TrackBar_SnakeWindow->Size = System::Drawing::Size(151, 45);
+			this->TrackBar_SnakeWindow->TabIndex = 12;
+			this->TrackBar_SnakeWindow->Value = 2;
 			// 
 			// CheckBox_Localization
 			// 
@@ -1553,14 +1555,14 @@ private: System::ComponentModel::IContainer^  components;
 			// 
 			// TextBox_PointY
 			// 
-			this->TextBox_PointY->Location = System::Drawing::Point(298, 603);
+			this->TextBox_PointY->Location = System::Drawing::Point(180, 603);
 			this->TextBox_PointY->Name = L"TextBox_PointY";
 			this->TextBox_PointY->Size = System::Drawing::Size(100, 20);
 			this->TextBox_PointY->TabIndex = 10;
 			// 
 			// TextBox_PointX
 			// 
-			this->TextBox_PointX->Location = System::Drawing::Point(298, 568);
+			this->TextBox_PointX->Location = System::Drawing::Point(180, 568);
 			this->TextBox_PointX->Name = L"TextBox_PointX";
 			this->TextBox_PointX->Size = System::Drawing::Size(100, 20);
 			this->TextBox_PointX->TabIndex = 9;
@@ -1568,7 +1570,7 @@ private: System::ComponentModel::IContainer^  components;
 			// Label_PointY
 			// 
 			this->Label_PointY->AutoSize = true;
-			this->Label_PointY->Location = System::Drawing::Point(173, 604);
+			this->Label_PointY->Location = System::Drawing::Point(55, 604);
 			this->Label_PointY->Name = L"Label_PointY";
 			this->Label_PointY->Size = System::Drawing::Size(96, 13);
 			this->Label_PointY->TabIndex = 8;
@@ -1577,7 +1579,7 @@ private: System::ComponentModel::IContainer^  components;
 			// Label_PointX
 			// 
 			this->Label_PointX->AutoSize = true;
-			this->Label_PointX->Location = System::Drawing::Point(173, 569);
+			this->Label_PointX->Location = System::Drawing::Point(55, 569);
 			this->Label_PointX->Name = L"Label_PointX";
 			this->Label_PointX->Size = System::Drawing::Size(96, 13);
 			this->Label_PointX->TabIndex = 7;
@@ -1879,7 +1881,7 @@ private: System::ComponentModel::IContainer^  components;
 			// MainForm
 			// 
 			this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Inherit;
-			this->ClientSize = System::Drawing::Size(1273, 1002);
+			this->ClientSize = System::Drawing::Size(1273, 878);
 			this->Controls->Add(this->TabControlOptions);
 			this->Controls->Add(this->ProgressBar_Layers);
 			this->Controls->Add(this->ProgressBar_Iterations);
@@ -1927,7 +1929,7 @@ private: System::ComponentModel::IContainer^  components;
 			this->GroupBox_Methods->PerformLayout();
 			this->Localization->ResumeLayout(false);
 			this->Localization->PerformLayout();
-			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->trackBar1))->EndInit();
+			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->TrackBar_SnakeWindow))->EndInit();
 			this->GroupBox_SnakeParameters->ResumeLayout(false);
 			this->GroupBox_SnakeParameters->PerformLayout();
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->TrackBar_IterationsNumber))->EndInit();
@@ -2000,6 +2002,8 @@ private: System::ComponentModel::IContainer^  components;
 			 {
 			  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
               glLoadIdentity();
+			  //все текстуры в нулевом юните
+			  glActiveTexture ( GL_TEXTURE0 + 0 );
 
               if (!RadioButtonRaycasting->Checked) 
 			  {
@@ -2400,6 +2404,7 @@ private: System::ComponentModel::IContainer^  components;
 				 VolumeSegment = new vector <TVolumeSegment> [1];
 					
 				 layerTextures = NULL;
+				 SnakePoints=NULL;
 			 }
 	private: System::Void ToolStripMenuItem_DownloadFile_Click(System::Object^  sender, System::EventArgs^  e) 
 			 {
@@ -2521,6 +2526,8 @@ private: System::ComponentModel::IContainer^  components;
 			   this->Button_Clusterization->Enabled = true;
 
 			   this->ButtonReconstructionData->Enabled = true;
+
+			   this->ButtonLocalize->Enabled = true;
 
 			   angleXRotation = angleYRotation = 0.0f;
                distance_x = distance_y = 0.0f;
@@ -3955,15 +3962,15 @@ private: System::Void RenderingPanel_MouseClick(System::Object^  sender, System:
 					
 			  vy=mouse_y+viewport[1];
 			  glReadPixels(vx, vy, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &vz);
-			  float p1[3], p2[3];
-			  p1[0]=vx;
-			  p1[1]=vy;
-			  p1[2]=vz;
+			//  float p1[3], p2[3];
+			//  p1[0]=vx;
+			//  p1[1]=vy;
+			//  p1[2]=vz;
 			  gluUnProject(vx, vy, (GLdouble)vz, modelview, projection, viewport, &wx, &wy, &wz);
 			  //походу вот это координаты точки пересечени€ с текстурой в пространстве
-			  p2[0]=wx;
-			  p2[1]=wy;
-			  p2[2]=wz;
+			//  p2[0]=wx;
+			//  p2[1]=wy;
+			//  p2[2]=wz;
 			  //переводим в значение воксел€
 
 			  // ищем определенный пиксель на текстуре
@@ -3984,57 +3991,101 @@ private: System::Void RenderingPanel_MouseClick(System::Object^  sender, System:
 			  texel[1]=0.0f;
 			  texel[2]=0.0f;
 			  texel[3]=1.0f;
-			  glBindTexture(GL_TEXTURE_2D, layerTextures[TrackBar_Layers->Value]);
-			  glTexSubImage2D(GL_TEXTURE_2D, 0, xvox, yvox, 1, 1, GL_RGBA, GL_FLOAT, texel);
+			  if (layerTextures)
+			  {
+				glBindTexture(GL_TEXTURE_2D, layerTextures[TrackBar_Layers->Value]);
+				glTexSubImage2D(GL_TEXTURE_2D, 0, xvox, yvox, 1, 1, GL_RGBA, GL_FLOAT, texel);
+			  }
+			  //кладем значени€ в сответствующие боксы
+			  TextBox_PointX->Text=xvox.ToString();
+			  TextBox_PointY->Text=yvox.ToString();
 			 }
 		 }
 private: System::Void ButtonLocalize_Click(System::Object^  sender, System::EventArgs^  e) 
 		 {
-       	  GenerateTextures();
+			//провер€ем корректность ввода
+			int xvox=-1, yvox=-1;
+			if ( (TextBox_PointX->Text == "") || (TextBox_PointY->Text == ""))
+				MessageBoxA(0, "One or both initial point's fields are empty", "Error!", 0);
+			else
+			{
+				xvox=Int32::Parse(TextBox_PointX->Text);
+				yvox=Int32::Parse(TextBox_PointY->Text);
+				if ( xvox < 0 || xvox > InputData->sizeX || yvox < 0 || yvox > InputData->sizeY )
+					MessageBoxA(0, "One or both initial point's fields have wrong value", "Error!", 0);
+				else
+				{
+					//чистим результат
+					if (SnakePoints)
+					{
+						delete [] SnakePoints;
+						SnakePoints=NULL;
+					}
 
-		  ShaderSnake *Snake=new ShaderSnake();
-	  	  TSnakeParameters sparams;
-		  sparams.alpha=TrackBar_AlphaValue->Value;
-		  sparams.beta=TrackBar_BetaValue->Value;
-		  sparams.gamma=TrackBar_GammaValue->Value;
-		  sparams.iterations_number=TrackBar_IterationsNumber->Value;
-		  RenderTimer->Stop();
-		  Snake->Init();
-		  Snake->GetReady();
+					SnakePoints = new vector <Point2i> [InputData->sizeZ];
 
-		  Snake->FixParams(layerTextures[TrackBar_Layers->Value], 512,512,4, sparams);
-				 
-		  Snake->AddSeed(Int32::Parse(TextBox_PointX->Text), Int32::Parse(TextBox_PointY->Text));
+					Texture2D* ResPoints;
+					int ResSize;
+					//можно считать
+					//переделываем текстуры (на старых рисовали)
+       				GenerateTextures();
 
-		  for (int i=0; i<TrackBar_IterationsNumber->Value; i++) Snake->Iterate();
+					this->ProgressBar_Layers->Value = 0;
+					
+					ShaderSnake *Snake=new ShaderSnake();
+	  				TSnakeParameters sparams;
+					sparams.alpha=TrackBar_AlphaValue->Value;
+					sparams.beta=TrackBar_BetaValue->Value;
+					sparams.gamma=TrackBar_GammaValue->Value;
+					sparams.iterations_number=TrackBar_IterationsNumber->Value;
+					sparams.window=TrackBar_SnakeWindow->Value;
+					RenderTimer->Stop();
+					Snake->Init();
+					for (int i=0 ; i< InputData->sizeZ; i++)
+					{
+						Snake->GetReady();
+						Snake->FixParams(layerTextures[i], InputData->sizeY, InputData->sizeX, 4, sparams);
+						Snake->AddSeed(xvox, yvox);
+						for (int j=0; j<TrackBar_IterationsNumber->Value; j++)
+							Snake->Iterate();
+						
+						//достаем точки
+						ResPoints=Snake->Output();
+						ResSize=Snake->GetSize();
+						for (int k=0; k<ResSize; k++)
+						{
+							Vector3D temp=ResPoints->Data->Pixel<Vector3D>(k,0);
+							//почему-то нельз€ выполнить это
+							SnakePoints[i].push_back(Point2i(temp.X, temp.Y));
+						}
+						Snake->ResetTexture();
+						this->ProgressBar_Layers->Value++;
+					}
+		
+					//прибиваем змейку
+					Snake->~ShaderSnake();
 
-		  //достаем точки
-		  Texture2D* ResPoints=Snake->Output();
-		  int ResSize=Snake->GetSize();
-  		  int *IResPoints=new int [ResSize*2];
+					//восстанавливаем то, что затер запуск шейдера
+					GLsizei height = this->RenderingPanel->Height;
+					GLsizei width = this->RenderingPanel->Width;
+					if (height == 0) {
+						height = 1;
+					}
 
-		  for (int i=0; i<ResSize; i++)
-		  {
-		   Vector4D temp=ResPoints->Data->Pixel<Vector4D>(i,0);
-		   IResPoints[2*i]=temp.X;
-		   IResPoints[2*i+1]=temp.Y;
-		  }
-		  
-		  ResPoints=NULL;
-		  Snake->~ShaderSnake();
-		  //выводим на текстуру
-		  float *tex=new float [4];
+					glViewport(0, 0, width, height);
 
-		  tex[0]=0.0;
-		  tex[1]=1.0;
-		  tex[2]=0.0;
-		  tex[3]=1.0;
+					glMatrixMode(GL_PROJECTION);
+					glLoadIdentity();
 
-		  glBindTexture(GL_TEXTURE_2D,layerTextures[TrackBar_Layers->Value]);
-		  for (int i=0; i<ResSize; i++)
-		  glTexSubImage2D(GL_TEXTURE_2D,0, IResPoints[2*i], IResPoints[2*i+1], 1,1, GL_RGBA, GL_FLOAT, tex);
-		  delete [] IResPoints; IResPoints=NULL;
-		  RenderTimer->Start();
+					gluPerspective(45.0f, (GLfloat)width / (GLfloat)height, 0.1f, 10000.0f);
+
+					glMatrixMode(GL_MODELVIEW);
+					glLoadIdentity();
+					GenerateTextures();
+					//запускаем рисовалку
+					RenderTimer->Start();
+				}
+			}
 		 }
 private: System::Void TrackBar_ScaleX_ValueChanged(System::Object^  sender, System::EventArgs^  e) 
 		 {
@@ -4089,6 +4140,30 @@ private: System::Void CheckBox_Localization_CheckedChanged(System::Object^  send
           this->CheckBoxClusters->Checked = !this->CheckBox_Localization->Checked&&this->CheckBoxClusters->Checked;
 		  this->CheckBox_ReconstructionInputData->Checked = !this->CheckBox_Localization->Checked&&this->CheckBox_ReconstructionInputData->Checked;
 		  this->CheckBox_Reconstruction3DSegments->Checked = !this->CheckBox_Localization->Checked&&this->CheckBox_Reconstruction3DSegments->Checked;
+		  if (this->CheckBox_Localization->Checked)
+		  {
+			  GenerateTextures();
+			  if (SnakePoints)
+			  {
+				//рисуем на всех текстурах
+				float *tex=new float [4];
+				tex[0]=0.0;
+				tex[1]=1.0;
+				tex[2]=0.0;
+				tex[3]=1.0;
+				for (int i=0; i<InputData->sizeZ; i++)
+				{
+					//выводим на текстуру
+					glBindTexture(GL_TEXTURE_2D,layerTextures[i]);
+					for (int j=0; j<SnakePoints[i].size(); j++)
+						glTexSubImage2D(GL_TEXTURE_2D,0, SnakePoints[i][j].x, SnakePoints[i][j].y, 1,1, GL_RGBA, GL_FLOAT, tex);
+				}
+			  }
+				else
+					MessageBoxA(0, "No Points to display", "Error", 0);
+		  }
+			else
+				GenerateTextures();//делаем новые текстуры
 		 }
 private: System::Void TrackBar_MeshStepX_ValueChanged(System::Object^  sender, System::EventArgs^  e) 
 		 {

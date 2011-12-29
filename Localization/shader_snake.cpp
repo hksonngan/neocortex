@@ -1,8 +1,6 @@
 #include "shader_snake.h"
 #include "common_defs.h"
-#include <fstream>
 
-using namespace std;
 
 const int BUFFER_LENGTH = 10000;
 const int DEF_SNAKE_LEN = 1000;
@@ -31,6 +29,68 @@ void ShaderSnake::Cleanup()
 }
 
 
+
+void ShaderSnake::AddSeed_Rect(int x1, int y1, int x2, int y2 )
+{
+	Texture2D *points;
+	if (m_odd_iter)
+	{
+		points = m_points_2;
+	}
+	else
+	{
+		points = m_points_1;
+	}
+	//m_size = Pts.size();
+	int forx=abs(x1-x2)/(m_params.window-1);
+	int fory=abs(y2-y1)/(m_params.window-1);
+
+	m_size=forx*2+fory*2;
+
+
+	for (int i=0; i<forx; i++)
+	{
+		points->Data->Pixel<Vector3D>(i,0)=Vector3D(x1+i*(m_params.window-1), y1, 0.0);
+	}
+
+	for (int i=forx; i<forx+fory; ++i)
+	{
+		points->Data->Pixel<Vector3D>(i,0)=Vector3D(x2, y1-(i-forx)*(m_params.window), 0.0);
+	}
+
+	for (int i=forx+fory; i<2*forx+fory; ++i)
+	{
+		points->Data->Pixel<Vector3D>(i,0)=Vector3D(x2-(i-forx-fory)*(m_params.window-1), y2, 0.0);
+	}
+
+	for (int i=2*forx+fory; i<2*forx+2*fory; ++i)
+	{
+		points->Data->Pixel<Vector3D>(i,0)=Vector3D(x1, y2-(i-2*forx+fory)*(m_params.window-1), 0.0);
+	}
+
+	points->Setup();
+}
+void ShaderSnake::AddSeed_Ell(int x, int y, int a, int b)
+{
+	Texture2D *points;
+	if (m_odd_iter)
+	{
+		points = m_points_2;
+	}
+	else
+	{
+		points = m_points_1;
+	}
+	//m_size = Pts.size();
+	m_size=2*(a+b);
+	float step=2*3.14/m_size;
+	for (float i=0; i<m_size; i++)
+		points->Data->Pixel<Vector3D>(i,0)=Vector3D((int)a*cos(i*step)+x, (int)b*sin(i*step)+y, 0.0);
+	points->Setup();
+}
+
+
+
 bool ShaderSnake::Init()
 {
 	if (m_shader)
@@ -47,8 +107,8 @@ bool ShaderSnake::Init()
 		return false;
 	}
 
-	string current_file = "shader_snake/Common.vs";
-	if (!m_shader->LoadVertexShader(current_file.c_str(), NULL))
+	string current_file = "shader_snake\\Common.vs";
+	if (!m_shader->LoadVertexShader(current_file.c_str()))
 	{
 		// Display error info
 		char szBuf[BUFFER_LENGTH];
@@ -66,8 +126,8 @@ bool ShaderSnake::Init()
 		return false;
 	}
 
-	current_file = "shader_snake/SingleSnake.fs";
-	if (!m_shader->LoadFragmentShader(current_file.c_str(), NULL))
+	current_file = "shader_snake\\SingleSnake.fs";
+	if (!m_shader->LoadFragmentShader(current_file.c_str()))
 	{
 		// Display error info
 		char szBuf[BUFFER_LENGTH];
@@ -117,7 +177,7 @@ bool ShaderSnake::GetReady()
 	// Reset and clear all previous data
 	Reset();
 
-	TextureData2D* data_1 = new TextureData2D(DEF_SNAKE_LEN, 1, 3);
+	TextureData2D* data_1 = new TextureData2D(DEF_SNAKE_LEN, 1);
 	if (!data_1)
 	{
 		MessageBoxA(0, lpszSnakeInitFailed, "'Shader snake'", MB_ICONWARNING);
@@ -135,7 +195,7 @@ bool ShaderSnake::GetReady()
 	}
 	m_points_1->Setup();
 
-	TextureData2D* data_2 = new TextureData2D(DEF_SNAKE_LEN, 1, 3);
+	TextureData2D* data_2 = new TextureData2D(DEF_SNAKE_LEN, 1);
 	if (!data_2)
 	{
 		MessageBoxA(0, lpszSnakeInitFailed, "'Shader snake'", MB_ICONWARNING);
@@ -208,37 +268,34 @@ void ShaderSnake::AddSeed(int x, int y)
 	points->Setup();
 }
 
-bool ShaderSnake::FixParams(int h_image, int width, int height, int components, TSnakeParameters& params)
+bool ShaderSnake::FixParams(int handle, int height, int width, int components, TSnakeParameters& params)
 {
-	if (h_image == 0)
+	if (handle==0)
 	{
 		return false;
 	}
 
 	m_params = params;
-	
-	//m_image= new Texture2D
-	// !!!разобратьс€ с w & h
-	m_image = new Texture2D(h_image, GL_TEXTURE_2D, 0);
-	m_image->Data=new TextureData2D(width, height, components, h_image);
 
 	// Prepare image(convert to normalized single-channel)
-/*
-	TextureData2D* data  = new TextureData2D(image->Data->GetWidth(), image->Data->GetHeight());
-	m_image = new Texture2D(data, SNAKE_IMAGE_FBO, GL_TEXTURE_RECTANGLE_ARB);
-	int w = image->Data->GetWidth();
-	int h = image->Data->GetHeight();
-*/
+
+//	TextureData2D* data  = new TextureData2D(image->Data->GetWidth(), image->Data->GetHeight());
+//	m_image = new Texture2D(data, SNAKE_IMAGE_FBO, GL_TEXTURE_RECTANGLE_ARB);
+	m_image=new Texture2D(handle, height, width, components, GL_TEXTURE_2D, 0);
+	int w = m_image->Data->GetWidth();
+	int h = m_image->Data->GetHeight();
+
 	float e_max = 0.0, e_min = FLT_MAX;
-	float* img = new float[width * height];
+	float* img = new float[w * h];
 
 	int i, j;
-	for (i = 0; i < height; i++)
+	for (i = 0; i < h; i++)
 	{
-		for (j = 0; j < width; j++)
+		for (j = 0; j < w; j++)
 		{
-			Vector3D pixel = m_image->Data->Pixel<Vector3D>(j, i);
-			float e = Dot(pixel, Vector3D(1.0, 1.0, 1.0));
+			//Vector3D pixel = image->Data->Pixel<Vector3D>(j, i);
+			Vector4D pixel = m_image->Data->Pixel<Vector4D>(j, i);
+			float e = Dot(pixel, Vector4D(1.0, 1.0, 1.0, 0.0));
 			if (e > e_max)
 			{
 				e_max = e;
@@ -247,7 +304,7 @@ bool ShaderSnake::FixParams(int h_image, int width, int height, int components, 
 			{
 				e_min = e;
 			}
-			img[i * width + j] = e;
+			img[i * w + j] = e;
 		}
 	}
 
@@ -256,20 +313,18 @@ bool ShaderSnake::FixParams(int h_image, int width, int height, int components, 
 	{
 		delta_e = 1.0 / delta_e;
 	}
-	for (i = 0; i < height; i++)
+	for (i = 0; i < h; i++)
 	{
-		for (j = 0; j < width; j++)
+		for (j = 0; j < w; j++)
 		{
-			m_image->Data->Pixel<Vector4D>(j, i).X = (img[i * width + j] - e_min) * delta_e;
-			m_image->Data->Pixel<Vector4D>(j, i).Y = (img[i * width + j] - e_min) * delta_e;
-			m_image->Data->Pixel<Vector4D>(j, i).Z = (img[i * width + j] - e_min) * delta_e;
+			m_image->Data->Pixel<Vector4D>(j, i).X = (img[i * w + j] - e_min) * delta_e;
+			m_image->Data->Pixel<Vector4D>(j, i).Y = (img[i * w + j] - e_min) * delta_e;
+			m_image->Data->Pixel<Vector4D>(j, i).Z = (img[i * w + j] - e_min) * delta_e;
 		}
 	}
-
 	m_image->Setup();
 
 	delete[] img;
-
 	return true;
 }
 
@@ -353,22 +408,12 @@ void ShaderSnake::Resample()
 		}
 	}
 
-	ofstream ofs("iterations.txt");
-
 	if (m_odd_iter)
 	{
-		for (int l=0; l<m_size; l++)
-			ofs<<m_points_1->Data->Pixel<Vector3D>(l,0);
-		ofs<<endl;
-		ofs.close();
 		m_points_1->Setup();
 	}
 	else
 	{
-		for (int l=0; l<m_size; l++)
-			ofs<<m_points_2->Data->Pixel<Vector3D>(l,0);
-		ofs<<endl;
-		ofs.close();
 		m_points_2->Setup();
 	}
 }
@@ -439,7 +484,7 @@ int ShaderSnake::Iterate()
 		m_shader->SetTexture("Points", m_points_2);
 	}
 
-	RunShader(m_size, 1, m_image->GetHandle());
+	RunShader(m_size, 1);
 	
 	if (m_odd_iter)
 	{
@@ -456,25 +501,6 @@ int ShaderSnake::Iterate()
 	m_points_2->Unbind();
 
 	m_shader->Unbind();
-
-	ofstream ofs("iterations.txt");
-
-	if (m_odd_iter)
-	{
-		for (int l=0; l<m_size; l++)
-			ofs<<m_points_1->Data->Pixel<Vector3D>(l,0);
-		ofs<<endl;
-		ofs.close();
-//		m_points_1->Setup();
-	}
-	else
-	{
-		for (int l=0; l<m_size; l++)
-			ofs<<m_points_2->Data->Pixel<Vector3D>(l,0);
-		ofs<<endl;
-		ofs.close();
-//		m_points_2->Setup();
-	}
 	
 	return 0;
 }
@@ -483,7 +509,13 @@ int ShaderSnake::GetSize()
 {
 	return m_size;
 }
-
+void ShaderSnake::ResetTexture()
+{
+	//убиваем текстуру, сохран€€ ее хэндл
+	m_image->SafeDestruction();
+	delete m_image;
+	m_image=NULL;
+}
 ShaderSnake::ShaderSnake()
 {
 	m_points_1 = NULL;
@@ -507,9 +539,9 @@ ShaderSnake::ShaderSnake()
 ShaderSnake::~ShaderSnake()
 {
 	Cleanup();
+	if (m_image)
+		ResetTexture();
 
 	delete m_shader;
 	m_shader = NULL;
-
-	m_image->Data->~TextureData2D();
 }

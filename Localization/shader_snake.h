@@ -3,9 +3,9 @@
 
 #pragma once
 
-//параметры змейки
-
-struct SnakeParams{
+//старые параметры змейки
+/*
+ struct SnakeParams{
 
 	float alpha;
 	float beta;
@@ -23,7 +23,8 @@ struct SnakeParams{
 		window = 2;
 	}
 };
-
+*/
+//новые параметры змейки
 struct TSnakeParameters
 {
 	float alpha, beta, gamma, kappa; 
@@ -32,7 +33,6 @@ struct TSnakeParameters
 
 	TSnakeParameters(): alpha(1.0f), beta(2.0f), gamma(15.0f), kappa(4.0f), iterations_number(30), window (2)  {}
 };
-
 
 class ShaderSnake
 {
@@ -47,8 +47,12 @@ public:
 	// Sets initial snake position(replaces old with a new if called multiple times)
 	void AddSeed(int x, int y);
 
+	void AddSeed_Rect(int x1, int y1, int x2, int y2);
+
+	void AddSeed_Ell(int x, int y, int a, int b);
+
 	// Sets snake params and image to work with
-	bool FixParams(int h_image, int width, int height, int components, TSnakeParameters& params);
+	bool FixParams(int handle, int height, int width, int components, TSnakeParameters& params);
 
 	// Returns pointer to algorithm output
 	Texture2D* Output() const;
@@ -60,6 +64,8 @@ public:
 	bool IsReady() const;
 
 	int GetSize();
+	//стираем текстуру, но оставляем handle
+	void ResetTexture();
 
 	ShaderSnake();
 	~ShaderSnake();
