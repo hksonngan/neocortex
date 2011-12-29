@@ -5,18 +5,20 @@
 #include <math.h>
 #include <float.h>
 #include <typeinfo>
-#include "GLee/GLee.h"
-#include <GL/gl.h>
-#include "Base Render Library/Keyboard.h"
-#include "Base Render Library/Mouse.h"
-#include "Base Render Library/FrameBuffer.h"
+#include "GLee\glee.h"
+#include <gl.h>
+#include <Base Render Library\Keyboard.h>
+#include <Base Render Library\Mouse.h>
+#include <Base Render Library\FrameBuffer.h>
 
 #pragma comment(lib,"opengl32.lib")
 #pragma comment(lib,"glut32.lib") 
 #pragma comment(lib,"glfw.lib") 
 
+
 using namespace BMath;
 using namespace Render;
+
 
 #define SP_ALPHA	1.0
 #define SP_BETA		2.0
@@ -25,7 +27,7 @@ using namespace Render;
 #define SP_ITERATIONS 100
 
 // Methods
-void RunShader(int width, int height, int handle);
+void RunShader(int width, int height);
 
 // Definitions
 const double M_PI = 3.14159265358979323846;
@@ -48,6 +50,7 @@ const int MAX_FILE_NAME_LENGTH = 40;
 const int MAX_FILTER_NAME_LENGTH = 30;
 const int TMP_BUFFER_SIZE = 30;
 const int MAX_IMAGE_SIZE = 2048;
+
 
 const char lpszBadFileFormat[] = "Bad image format.";
 const char lpszReachedMaxCount[] = "Max image count reached. Please, restart application to clear the list.";

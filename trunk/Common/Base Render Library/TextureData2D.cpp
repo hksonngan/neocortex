@@ -35,19 +35,15 @@ namespace Render
                 memset ( Pixels, 0, Width * Height * Components );
         }
 		
-		TextureData2D :: TextureData2D (int w, int h, int c, int handle )
+		TextureData2D :: TextureData2D (int _Handle, int _Width, int _Height, int _Components)
 		{
-			Width = w;
-
-            Height = h;
-
-            Components = c;
-
-            Pixels = new float [Width * Height * Components];
-			
-			glBindTexture(GL_TEXTURE_2D, handle);
-			
-			glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, Pixels);	
+			Width = _Width;
+            Height = _Height;
+            Components = _Components;
+			Pixels = new float [Width * Height * Components];
+            memset ( Pixels, 0, Width * Height * Components );
+			glBindTexture ( GL_TEXTURE_2D, _Handle );
+			glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, Pixels);
 		}
                        
         TextureData2D :: ~TextureData2D ( void )

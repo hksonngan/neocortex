@@ -47,12 +47,12 @@ namespace Render
                         int Components;
                 
                 public:
-
+						
                         //----------------------------- Constructor and Destructor ----------------------------
                 
                         TextureData2D ( int, int, int = 3 );
 						
-						TextureData2D (int w, int h, int c, int handle);	//выдираем из уже имеющейся текстуры
+						TextureData2D (int _Handle, int _Width, int _Height, int _Components);
                         
                         ~TextureData2D ( void );
 

@@ -36,17 +36,28 @@ namespace Render
                 Init ( target, data, unit );
         }
 
-		Texture2D :: Texture2D (unsigned hdl, unsigned target, unsigned unit)
+		Texture2D :: Texture2D (	unsigned _Handle, unsigned _Width, unsigned _Height, unsigned _Components,
+						unsigned _Target, unsigned _Unit)
 		{
-			Handle =hdl;
-			Target = target;
-			Unit = unit;
-			Data = NULL;
+			Handle = _Handle;
+			Target = _Target;
+			Unit = _Unit;
+			Bind( );
+			Data = new TextureData2D(Handle, _Width, _Height, _Components);
+			//glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, Data->Pixels);	
+		}
+		
+		void Texture2D :: SafeDestruction()
+		{
+			//если выдирали текстуру из уже существующего объекта, то 
+			//это нужно вызвать перед ее уничтожением
+			Handle=0;
 		}
 
         Texture2D :: ~Texture2D ( void )
         {
-                delete Data;
+				if (Data)
+					delete Data;
 
                 glDeleteTextures ( 1, &Handle );
         }

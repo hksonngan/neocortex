@@ -68,7 +68,10 @@ namespace Render
 
                         Texture2D ( TextureData2D *, unsigned = 0, unsigned = GL_TEXTURE_2D );
 						
-						Texture2D (unsigned hdl, unsigned target = GL_TEXTURE_2D, unsigned unit = 0);
+						Texture2D (	unsigned _Handle, unsigned _Height, unsigned _Width, unsigned _Components,
+									unsigned _Target = GL_TEXTURE_2D, unsigned _Unit = 0);
+						
+						void SafeDestruction();
 
                         ~Texture2D ( void );
 
