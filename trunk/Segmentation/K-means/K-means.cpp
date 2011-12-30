@@ -1,5 +1,6 @@
 #include <math.h>
 #include <time.h>
+#include <algorithm>
 #include "K-means.h"
 
 using namespace std;
