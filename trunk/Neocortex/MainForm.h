@@ -4680,51 +4680,89 @@ private: System::Void RenderingPanel_MouseClick(System::Object^  sender, System:
 		 }
 private: System::Void ButtonLocalize_Click(System::Object^  sender, System::EventArgs^  e) 
 		 {
-			 GenerateTextures();
+//проверяем корректность ввода
+			int xvox=-1, yvox=-1;
+			if ( (TextBox_PointX->Text == "") || (TextBox_PointY->Text == ""))
+				MessageBoxA(0, "One or both initial point's fields are empty", "Error!", 0);
+			else
+			{
+				xvox=Int32::Parse(TextBox_PointX->Text);
+				yvox=Int32::Parse(TextBox_PointY->Text);
+				if ( xvox < 0 || xvox > InputData->sizeX || yvox < 0 || yvox > InputData->sizeY )
+					MessageBoxA(0, "One or both initial point's fields have wrong value", "Error!", 0);
+				else
+				{
+					//чистим результат
+					if (SnakePoints)
+					{
+						delete [] SnakePoints;
+						SnakePoints=NULL;
+					}
 
-		  ShaderSnake *Snake=new ShaderSnake();
-	  	  TSnakeParameters sparams;
-		  sparams.alpha=TrackBar_AlphaValue->Value;
-		  sparams.beta=TrackBar_BetaValue->Value;
-		  sparams.gamma=TrackBar_GammaValue->Value;
-		  sparams.iterations_number=TrackBar_IterationsNumber->Value;
-		  RenderTimer->Stop();
-		  Snake->Init();
-		  Snake->GetReady();
+					SnakePoints = new vector <Point2i> [InputData->sizeZ];
 
-		  Snake->FixParams(layerTextures[TrackBar_Layers_Visualization->Value], 512,512,4, sparams);
-				 
-		  Snake->AddSeed(Int32::Parse(TextBox_PointX->Text), Int32::Parse(TextBox_PointY->Text));
+					Texture2D* ResPoints;
+					int ResSize;
+					//можно считать
+					//переделываем текстуры (на старых рисовали)
+       				GenerateTextures();
 
-		  for (int i=0; i<TrackBar_IterationsNumber->Value; i++) Snake->Iterate();
+					this->ProgressBar_Layers->Value = 0;
+					
+					ShaderSnake *Snake=new ShaderSnake();
+	  				TSnakeParameters sparams;
+					sparams.alpha=TrackBar_AlphaValue->Value;
+					sparams.beta=TrackBar_BetaValue->Value;
+					sparams.gamma=TrackBar_GammaValue->Value;
+					sparams.iterations_number=TrackBar_IterationsNumber->Value;
+					sparams.window=TrackBar_SnakeWindow->Value;
+					RenderTimer->Stop();
+					Snake->Init();
+					for (int i=0 ; i< InputData->sizeZ; i++)
+					{
+						Snake->GetReady();
+						Snake->FixParams(layerTextures[i], InputData->sizeY, InputData->sizeX, 4, sparams);
+						Snake->AddSeed(xvox, yvox);
+						for (int j=0; j<TrackBar_IterationsNumber->Value; j++)
+							Snake->Iterate();
+						
+						//достаем точки
+						ResPoints=Snake->Output();
+						ResSize=Snake->GetSize();
+						for (int k=0; k<ResSize; k++)
+						{
+							Vector3D temp=ResPoints->Data->Pixel<Vector3D>(k,0);
+							//почему-то нельзя выполнить это
+							SnakePoints[i].push_back(Point2i(temp.X, temp.Y));
+						}
+						Snake->ResetTexture();
+						this->ProgressBar_Layers->Value++;
+					}
+		
+					//прибиваем змейку
+					Snake->~ShaderSnake();
 
-		  //достаем точки
-		  Texture2D* ResPoints=Snake->Output();
-		  int ResSize=Snake->GetSize();
-  		  int *IResPoints=new int [ResSize*2];
+					//восстанавливаем то, что затер запуск шейдера
+					GLsizei height = this->RenderingPanel->Height;
+					GLsizei width = this->RenderingPanel->Width;
+					if (height == 0) {
+						height = 1;
+					}
 
-		  for (int i=0; i<ResSize; i++)
-		  {
-		   Vector4D temp=ResPoints->Data->Pixel<Vector4D>(i,0);
-		   IResPoints[2*i]=temp.X;
-		   IResPoints[2*i+1]=temp.Y;
-		  }
-		  
-		  ResPoints=NULL;
-		  Snake->~ShaderSnake();
-		  //выводим на текстуру
-		  float *tex=new float [4];
+					glViewport(0, 0, width, height);
 
-		  tex[0]=0.0;
-		  tex[1]=1.0;
-		  tex[2]=0.0;
-		  tex[3]=1.0;
+					glMatrixMode(GL_PROJECTION);
+					glLoadIdentity();
 
-		  glBindTexture(GL_TEXTURE_2D, layerTextures[TrackBar_Layers_Visualization->Value]);
-		  for (int i=0; i<ResSize; i++)
-		  glTexSubImage2D(GL_TEXTURE_2D,0, IResPoints[2*i], IResPoints[2*i+1], 1,1, GL_RGBA, GL_FLOAT, tex);
-		  delete [] IResPoints; IResPoints=NULL;
-RenderTimer->Start();
+					gluPerspective(45.0f, (GLfloat)width / (GLfloat)height, 0.1f, 10000.0f);
+
+					glMatrixMode(GL_MODELVIEW);
+					glLoadIdentity();
+					GenerateTextures();
+					//запускаем рисовалку
+					RenderTimer->Start();
+				}
+			}
 				
 		 }
 private: System::Void TrackBar_ScaleX_ValueChanged(System::Object^  sender, System::EventArgs^  e) 
