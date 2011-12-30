@@ -5,8 +5,8 @@
 #include <math.h>
 #include <float.h>
 #include <typeinfo>
-#include "GLee\glee.h"
-#include <gl.h>
+#include "GLee/GLee.h"
+#include <GL/gl.h>
 #include <Base Render Library\Keyboard.h>
 #include <Base Render Library\Mouse.h>
 #include <Base Render Library\FrameBuffer.h>
