@@ -602,12 +602,12 @@ private: System::ComponentModel::IContainer^  components;
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->TrackBar_BrightnessMult))->BeginInit();
 			this->GroupBox_Methods->SuspendLayout();
 			this->Localization->SuspendLayout();
-// <<<<<<< .mine
+
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->TrackBar_Layers_Localization))->BeginInit();
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->TrackBar_SnakeWindow))->BeginInit();
-// ======= 
+
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->TrackBar_SnakeWindow))->BeginInit();
-// >>>>>>> .r26
+
 			this->GroupBox_SnakeParameters->SuspendLayout();
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->TrackBar_IterationsNumber))->BeginInit();
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->TrackBar_GammaValue))->BeginInit();
@@ -637,11 +637,11 @@ private: System::ComponentModel::IContainer^  components;
 			this->ToolStripMenuItem_File->DropDownItems->AddRange(gcnew cli::array< System::Windows::Forms::ToolStripItem^  >(3) {this->ToolStripMenuItem_DownloadData, 
 				this->ToolStripMenuItem_ExportData, this->ToolStripMenuItem_Exit});
 			this->ToolStripMenuItem_File->Name = L"ToolStripMenuItem_File";
-// <<<<<<< .mine
+
 			this->ToolStripMenuItem_File->Size = System::Drawing::Size(54, 22);
-// ======= 
+
 			this->ToolStripMenuItem_File->Size = System::Drawing::Size(45, 20);
-// // >>>>>>> .r26
+
 			this->ToolStripMenuItem_File->Text = L"Файл";
 			// 
 			// ToolStripMenuItem_DownloadData
@@ -650,32 +650,32 @@ private: System::ComponentModel::IContainer^  components;
 				this->ToolStripMenuItem_FromFolder});
 			this->ToolStripMenuItem_DownloadData->Name = L"ToolStripMenuItem_DownloadData";
 			this->ToolStripMenuItem_DownloadData->ShortcutKeys = static_cast<System::Windows::Forms::Keys>((System::Windows::Forms::Keys::Control | System::Windows::Forms::Keys::O));
-// <<<<<<< .mine
+
 			this->ToolStripMenuItem_DownloadData->Size = System::Drawing::Size(266, 22);
-// =======
+
 			this->ToolStripMenuItem_DownloadData->Size = System::Drawing::Size(219, 22);
-// // >>>>>>> .r26
+
 			this->ToolStripMenuItem_DownloadData->Text = L"Загрузить данные";
 			// 
 			// ToolStripMenuItem_FromBinFile
 			// 
 			this->ToolStripMenuItem_FromBinFile->Name = L"ToolStripMenuItem_FromBinFile";
-// <<<<<<< .mine
+
 			this->ToolStripMenuItem_FromBinFile->Size = System::Drawing::Size(195, 22);
-// ======= 
+
 			this->ToolStripMenuItem_FromBinFile->Size = System::Drawing::Size(162, 22);
-// >>>>>>> .r26
+
 			this->ToolStripMenuItem_FromBinFile->Text = L"Из bin-файла...";
 			this->ToolStripMenuItem_FromBinFile->Click += gcnew System::EventHandler(this, &MainForm::ToolStripMenuItem_DownloadFile_Click);
 			// 
 			// ToolStripMenuItem_FromFolder
 			// 
 			this->ToolStripMenuItem_FromFolder->Name = L"ToolStripMenuItem_FromFolder";
-// <<<<<<< .mine
+
 			this->ToolStripMenuItem_FromFolder->Size = System::Drawing::Size(195, 22);
-// ======= 
+
 			this->ToolStripMenuItem_FromFolder->Size = System::Drawing::Size(162, 22);
-// >>>>>>> .r26
+
 			this->ToolStripMenuItem_FromFolder->Text = L"Из каталога...";
 			this->ToolStripMenuItem_FromFolder->Click += gcnew System::EventHandler(this, &MainForm::ToolStripMenuItem_DownloadFolder_Click);
 			// 
@@ -685,42 +685,42 @@ private: System::ComponentModel::IContainer^  components;
 				this->ToolStripMenuItem_ToFolder});
 			this->ToolStripMenuItem_ExportData->Name = L"ToolStripMenuItem_ExportData";
 			this->ToolStripMenuItem_ExportData->ShortcutKeys = static_cast<System::Windows::Forms::Keys>((System::Windows::Forms::Keys::Control | System::Windows::Forms::Keys::E));
-// <<<<<<< .mine
+
 			this->ToolStripMenuItem_ExportData->Size = System::Drawing::Size(266, 22);
-// ======= 
+
 			this->ToolStripMenuItem_ExportData->Size = System::Drawing::Size(219, 22);
-// >>>>>>> .r26
+
 			this->ToolStripMenuItem_ExportData->Text = L"Экспорт данных";
 			// 
 			// ToolStripMenuItem_ToBinFile
 			// 
 			this->ToolStripMenuItem_ToBinFile->Name = L"ToolStripMenuItem_ToBinFile";
-// <<<<<<< .mine
+
 			this->ToolStripMenuItem_ToBinFile->Size = System::Drawing::Size(197, 22);
-// ======= 
+
 			this->ToolStripMenuItem_ToBinFile->Size = System::Drawing::Size(162, 22);
-// >>>>>>> .r26
+
 			this->ToolStripMenuItem_ToBinFile->Text = L"В bin-формат...";
 			// 
 			// ToolStripMenuItem_ToFolder
 			// 
 			this->ToolStripMenuItem_ToFolder->Name = L"ToolStripMenuItem_ToFolder";
-// <<<<<<< .mine
+
 			this->ToolStripMenuItem_ToFolder->Size = System::Drawing::Size(197, 22);
-// ======= 
+
 			this->ToolStripMenuItem_ToFolder->Size = System::Drawing::Size(162, 22);
-// >>>>>>> .r26
+
 			this->ToolStripMenuItem_ToFolder->Text = L"В каталог...";
 			// 
 			// ToolStripMenuItem_Exit
 			// 
 			this->ToolStripMenuItem_Exit->Name = L"ToolStripMenuItem_Exit";
 			this->ToolStripMenuItem_Exit->ShortcutKeys = static_cast<System::Windows::Forms::Keys>((System::Windows::Forms::Keys::Alt | System::Windows::Forms::Keys::F4));
-// <<<<<<< .mine
+
 			this->ToolStripMenuItem_Exit->Size = System::Drawing::Size(266, 22);
-// ======= 
+
 			this->ToolStripMenuItem_Exit->Size = System::Drawing::Size(219, 22);
-// >>>>>>> .r26
+
 			this->ToolStripMenuItem_Exit->Text = L"Выход";
 			this->ToolStripMenuItem_Exit->Click += gcnew System::EventHandler(this, &MainForm::ToolStripMenuItem_Exit_Click);
 			// 
@@ -1184,11 +1184,11 @@ private: System::ComponentModel::IContainer^  components;
 			this->Information->Controls->Add(this->Label_FileSize);
 			this->Information->Location = System::Drawing::Point(4, 25);
 			this->Information->Name = L"Information";
-// <<<<<<< .mine
+
 			this->Information->Size = System::Drawing::Size(535, 940);
-// ======= 
+
 			this->Information->Size = System::Drawing::Size(535, 819);
-// >>>>>>> .r26
+
 			this->Information->TabIndex = 4;
 			this->Information->Text = L"Информация";
 			// 
@@ -1621,11 +1621,11 @@ private: System::ComponentModel::IContainer^  components;
 			this->Localization->Controls->Add(this->GroupBox_SnakeParameters);
 			this->Localization->Location = System::Drawing::Point(4, 25);
 			this->Localization->Name = L"Localization";
-// <<<<<<< .mine
+
 			this->Localization->Size = System::Drawing::Size(535, 940);
-// ======= 
+
 			this->Localization->Size = System::Drawing::Size(535, 819);
-// >>>>>>> .r26
+
 			this->Localization->TabIndex = 3;
 			this->Localization->Text = L"Локализация";
 			// 
@@ -1660,21 +1660,20 @@ private: System::ComponentModel::IContainer^  components;
 			// 
 			// TrackBar_SnakeWindow
 			// 
-// <<<<<<< .mine
 			this->TrackBar_SnakeWindow->Location = System::Drawing::Point(342, 326);
 			this->TrackBar_SnakeWindow->Minimum = 2;
 			this->TrackBar_SnakeWindow->Name = L"TrackBar_SnakeWindow";
 			this->TrackBar_SnakeWindow->Size = System::Drawing::Size(151, 56);
 			this->TrackBar_SnakeWindow->TabIndex = 12;
 			this->TrackBar_SnakeWindow->Value = 2;
-// ======= 
+
 			this->TrackBar_SnakeWindow->Location = System::Drawing::Point(332, 328);
 			this->TrackBar_SnakeWindow->Minimum = 2;
 			this->TrackBar_SnakeWindow->Name = L"TrackBar_SnakeWindow";
 			this->TrackBar_SnakeWindow->Size = System::Drawing::Size(151, 45);
 			this->TrackBar_SnakeWindow->TabIndex = 12;
 			this->TrackBar_SnakeWindow->Value = 2;
-// >>>>>>> .r26
+
 			// 
 			// CheckBox_Localization
 			// 
@@ -1689,22 +1688,22 @@ private: System::ComponentModel::IContainer^  components;
 			// 
 			// TextBox_PointY
 			// 
-// <<<<<<< .mine
+
 			this->TextBox_PointY->Location = System::Drawing::Point(298, 578);
-// ======= 
+
 			this->TextBox_PointY->Location = System::Drawing::Point(180, 603);
-// >>>>>>> .r26
+
 			this->TextBox_PointY->Name = L"TextBox_PointY";
 			this->TextBox_PointY->Size = System::Drawing::Size(100, 22);
 			this->TextBox_PointY->TabIndex = 10;
 			// 
 			// TextBox_PointX
 			// 
-// <<<<<<< .mine
+
 			this->TextBox_PointX->Location = System::Drawing::Point(298, 543);
-// ======= 
+
 			this->TextBox_PointX->Location = System::Drawing::Point(180, 568);
-// >>>>>>> .r26
+
 			this->TextBox_PointX->Name = L"TextBox_PointX";
 			this->TextBox_PointX->Size = System::Drawing::Size(100, 22);
 			this->TextBox_PointX->TabIndex = 9;
@@ -1712,11 +1711,11 @@ private: System::ComponentModel::IContainer^  components;
 			// Label_PointY
 			// 
 			this->Label_PointY->AutoSize = true;
-// <<<<<<< .mine
+
 			this->Label_PointY->Location = System::Drawing::Point(173, 579);
-// ======= 
+
 			this->Label_PointY->Location = System::Drawing::Point(55, 604);
-// >>>>>>> .r26
+
 			this->Label_PointY->Name = L"Label_PointY";
 			this->Label_PointY->Size = System::Drawing::Size(125, 17);
 			this->Label_PointY->TabIndex = 8;
@@ -1725,11 +1724,11 @@ private: System::ComponentModel::IContainer^  components;
 			// Label_PointX
 			// 
 			this->Label_PointX->AutoSize = true;
-// <<<<<<< .mine
+
 			this->Label_PointX->Location = System::Drawing::Point(173, 544);
-// ======= 
+
 			this->Label_PointX->Location = System::Drawing::Point(55, 569);
-// >>>>>>> .r26
+
 			this->Label_PointX->Name = L"Label_PointX";
 			this->Label_PointX->Size = System::Drawing::Size(125, 17);
 			this->Label_PointX->TabIndex = 7;
@@ -2126,12 +2125,12 @@ private: System::ComponentModel::IContainer^  components;
 			this->GroupBox_Methods->PerformLayout();
 			this->Localization->ResumeLayout(false);
 			this->Localization->PerformLayout();
-// <<<<<<< .mine
+
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->TrackBar_Layers_Localization))->EndInit();
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->TrackBar_SnakeWindow))->EndInit();
-// ======= 
+
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->TrackBar_SnakeWindow))->EndInit();
-// >>>>>>> .r26
+
 			this->GroupBox_SnakeParameters->ResumeLayout(false);
 			this->GroupBox_SnakeParameters->PerformLayout();
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->TrackBar_IterationsNumber))->EndInit();
@@ -4664,10 +4663,10 @@ private: System::Void RenderingPanel_MouseClick(System::Object^  sender, System:
 			  texel[1]=0.0f;
 			  texel[2]=0.0f;
 			  texel[3]=1.0f;
-// <<<<<<< .mine
+
 			  glBindTexture(GL_TEXTURE_2D, layerTextures[TrackBar_Layers_Visualization->Value]);
 			  glTexSubImage2D(GL_TEXTURE_2D, 0, xvox, yvox, 1, 1, GL_RGBA, GL_FLOAT, texel);
-// ======= 
+
 			  if (layerTextures)
 			  {
 				glBindTexture(GL_TEXTURE_2D, layerTextures[TrackBar_Layers_Visualization->Value]);
@@ -4676,7 +4675,7 @@ private: System::Void RenderingPanel_MouseClick(System::Object^  sender, System:
 			  //кладем значения в сответствующие боксы
 			  TextBox_PointX->Text=xvox.ToString();
 			  TextBox_PointY->Text=yvox.ToString();
-// >>>>>>> .r26
+
 			 }
 		 }
 private: System::Void ButtonLocalize_Click(System::Object^  sender, System::EventArgs^  e) 
