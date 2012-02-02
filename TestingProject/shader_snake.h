@@ -60,6 +60,8 @@ public:
 	~ShaderSnake();
 
 private:
+	int inum;
+
 	// Snake points
 	Texture2D* m_points_1;
 	Texture2D* m_points_2;

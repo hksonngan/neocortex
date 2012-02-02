@@ -84,9 +84,12 @@ private:
 
 	// Params
 	TSnakeParameters m_params;
+	int inum; //номер итерации
 
 	// Image
-	Texture2D* m_image;
+	int m_image;
+	int m_width;
+	int m_height;
 
 	void Cleanup();
 	void Resample();

@@ -1,5 +1,6 @@
 #include "shader_snake.h"
 #include "common_defs.h"
+#include <fstream>
 
 
 const int BUFFER_LENGTH = 10000;
@@ -276,6 +277,7 @@ bool ShaderSnake::FixParams(Texture2D* &image, SnakeParams& params)
 	}
 
 	m_params = params;
+	inum=0;
 
 	// Prepare image(convert to normalized single-channel)
 
@@ -482,6 +484,13 @@ int ShaderSnake::Iterate()
 		m_shader->SetTexture("Points", m_points_2);
 	}
 
+
+	std::ofstream ofs("Testing_Project_out.txt",std::ios_base::app);
+	ofs<<std::endl<<"Iteration #"<<inum<<" before"<<std::endl;
+	for (int f=0; f<m_size; f++)
+		ofs<<in_points->Pixel<Vector3D>(f,0).X<<"	"<<in_points->Pixel<Vector3D>(f,0).Y<<std::endl;
+	ofs<<std::endl;
+
 	RunShader(m_size, 1);
 	
 	if (m_odd_iter)
@@ -499,6 +508,17 @@ int ShaderSnake::Iterate()
 	m_points_2->Unbind();
 
 	m_shader->Unbind();
+
+
+	ofs<<std::endl<<"Iteration #"<<inum<<" after"<<std::endl;
+	for (int f=0; f<m_size; f++)
+		if (m_odd_iter)
+			ofs<<m_points_2->Data->Pixel<Vector3D>(f,0).X<<"	"<<m_points_2->Data->Pixel<Vector3D>(f,0).Y<<std::endl;
+		else
+			ofs<<m_points_1->Data->Pixel<Vector3D>(f,0).X<<"	"<<m_points_1->Data->Pixel<Vector3D>(f,0).Y<<std::endl;
+	ofs<<std::endl;
+	inum++;
+	ofs.close();
 	
 	return 0;
 }
@@ -510,6 +530,8 @@ int ShaderSnake::GetSize()
 
 ShaderSnake::ShaderSnake()
 {
+	inum=0;
+
 	m_points_1 = NULL;
 	m_points_2 = NULL;
 	m_size = 0;
