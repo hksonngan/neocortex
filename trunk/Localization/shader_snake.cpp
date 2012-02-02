@@ -1,5 +1,6 @@
 #include "shader_snake.h"
 #include "common_defs.h"
+#include <fstream>
 
 
 const int BUFFER_LENGTH = 10000;
@@ -276,12 +277,17 @@ bool ShaderSnake::FixParams(int handle, int height, int width, int components, T
 	}
 
 	m_params = params;
-
+	inum=0;
 	// Prepare image(convert to normalized single-channel)
 
 //	TextureData2D* data  = new TextureData2D(image->Data->GetWidth(), image->Data->GetHeight());
 //	m_image = new Texture2D(data, SNAKE_IMAGE_FBO, GL_TEXTURE_RECTANGLE_ARB);
-	m_image=new Texture2D(handle, height, width, components, GL_TEXTURE_2D, 0);
+
+	m_image=handle;
+	m_width=width;
+	m_height=height;
+
+/*	m_image=new Texture2D(handle, height, width, components, GL_TEXTURE_2D, 0);
 	int w = m_image->Data->GetWidth();
 	int h = m_image->Data->GetHeight();
 
@@ -325,6 +331,7 @@ bool ShaderSnake::FixParams(int handle, int height, int width, int components, T
 	m_image->Setup();
 
 	delete[] img;
+	*/
 	return true;
 }
 
@@ -459,19 +466,26 @@ int ShaderSnake::Iterate()
 	
 	m_shader->SetUniformInteger("iSize", m_size);
 	m_shader->SetUniformInteger("iWindow", m_params.window);
-	m_shader->SetUniformInteger("iWidth", m_image->Data->GetWidth());
-	m_shader->SetUniformInteger("iHeight", m_image->Data->GetHeight());
+//	m_shader->SetUniformInteger("iWidth", m_image->Data->GetWidth());
+	m_shader->SetUniformInteger("iWidth", m_width);
+//	m_shader->SetUniformInteger("iHeight", m_image->Data->GetHeight());
+		m_shader->SetUniformInteger("iHeight", m_height);
 	m_shader->SetUniformFloat("fGamma", m_params.gamma);
 	m_shader->SetUniformFloat("fAvgDist", avg_dist);
 	m_shader->SetUniformVector("vParam", Vector3D(m_params.alpha, 
 												  m_params.beta, 
 												  m_params.kappa));
 
-	m_image->Bind();
+	//m_image->Bind();
+	glBindFramebuffer ( GL_TEXTURE_2D, m_image );
 	m_points_1->Bind();
 	m_points_2->Bind();
 
-	m_shader->SetTexture("Image", m_image);
+	//m_shader->SetTexture("Image", m_image);
+
+	int location = glGetUniformLocation ( m_shader->GetProgramHandle(), "Image" );
+    glUniform1i ( location, m_image);
+
 
 	if (m_odd_iter)
 	{
@@ -483,6 +497,13 @@ int ShaderSnake::Iterate()
 		m_FBO_2->Bind();
 		m_shader->SetTexture("Points", m_points_2);
 	}
+
+	std::ofstream ofs("Neocortex_out.txt", std::ios_base::app);
+	ofs<<std::endl<<"Iteration #"<<inum<<" before"<<std::endl;
+	for (int f=0; f<m_size; f++)
+		ofs<<in_points->Pixel<Vector3D>(f,0).X<<"	"<<in_points->Pixel<Vector3D>(f,0).Y<<std::endl;
+	ofs<<std::endl;
+	
 
 	RunShader(m_size, 1);
 	
@@ -501,6 +522,16 @@ int ShaderSnake::Iterate()
 	m_points_2->Unbind();
 
 	m_shader->Unbind();
+
+	ofs<<std::endl<<"Iteration #"<<inum<<" after"<<std::endl;
+	for (int f=0; f<m_size; f++)
+		if (m_odd_iter)
+			ofs<<m_points_2->Data->Pixel<Vector3D>(f,0).X<<"	"<<m_points_2->Data->Pixel<Vector3D>(f,0).Y<<std::endl;
+		else
+			ofs<<m_points_1->Data->Pixel<Vector3D>(f,0).X<<"	"<<m_points_1->Data->Pixel<Vector3D>(f,0).Y<<std::endl;
+	ofs<<std::endl;
+	inum++;
+	ofs.close();
 	
 	return 0;
 }
@@ -512,12 +543,14 @@ int ShaderSnake::GetSize()
 void ShaderSnake::ResetTexture()
 {
 	//убиваем текстуру, сохраняя ее хэндл
-	m_image->SafeDestruction();
-	delete m_image;
-	m_image=NULL;
+//	m_image->SafeDestruction();
+//	delete m_image;
+	m_image=0;
 }
 ShaderSnake::ShaderSnake()
 {
+	inum=0;
+
 	m_points_1 = NULL;
 	m_points_2 = NULL;
 	m_size = 0;
