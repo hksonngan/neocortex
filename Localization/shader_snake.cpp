@@ -269,39 +269,76 @@ void ShaderSnake::AddSeed(int x, int y)
 	points->Setup();
 }
 
-bool ShaderSnake::FixParams(int handle, int height, int width, int components, TSnakeParameters& params)
+bool ShaderSnake::FixParams(int image, int height, int width, int components, TSnakeParameters& params)
 {
-	if (handle==0)
+	if (!image)
 	{
 		return false;
 	}
 
 	m_params = params;
 	inum=0;
+	float e_max = 0.0, e_min = FLT_MAX;
+	float* raw_img=new float [width*height*4];
+	float* prep_img= new float [width* height];
+	//вытаскиваем точки из уже готовой текстуры
+	 glActiveTexture ( GL_TEXTURE0 + 0 );
+     glBindTexture ( GL_TEXTURE_2D, image );
+	 glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, raw_img);
 	// Prepare image(convert to normalized single-channel)
+	 //цикл по четверкам
+	 for (int i=0; i<height*width; i++)
+	 {
+		float e = raw_img[4*i]+raw_img[4*i+1]+raw_img[4*i+2];
+		if (e > e_max)
+		{
+			e_max = e;
+		}
+		if (e < e_min)
+		{
+			e_min = e;
+		}
+		prep_img[i]=e;
+	 }
 
-//	TextureData2D* data  = new TextureData2D(image->Data->GetWidth(), image->Data->GetHeight());
-//	m_image = new Texture2D(data, SNAKE_IMAGE_FBO, GL_TEXTURE_RECTANGLE_ARB);
+	float delta_e = e_max - e_min;
+	if (delta_e > 0.0)
+	{
+		delta_e = 1.0 / delta_e;
+	}
+	delete [] raw_img; raw_img=NULL;
+	
+	TextureData2D* data  = new TextureData2D(width, height);
+	m_image = new Texture2D(data, SNAKE_IMAGE_FBO, GL_TEXTURE_RECTANGLE_ARB);
 
-	m_image=handle;
-	m_width=width;
-	m_height=height;
 
-/*	m_image=new Texture2D(handle, height, width, components, GL_TEXTURE_2D, 0);
-	int w = m_image->Data->GetWidth();
-	int h = m_image->Data->GetHeight();
+	for (int i = 0; i < height; i++)
+	{
+		for (int j = 0; j < width; j++)
+		{
+			m_image->Data->Pixel<Vector3D>(j, i) = (prep_img[i * width + j] - e_min) * delta_e;
+		}
+	}
+
+	m_image->Setup();
+	delete[] prep_img; prep_img=NULL;
+	return true;
+/*
+	//m_image=image;
+//	int w = image->Data->GetWidth();
+//	int h = image->Data->GetHeight();
 
 	float e_max = 0.0, e_min = FLT_MAX;
-	float* img = new float[w * h];
+	float* img = new float[width * height];
 
 	int i, j;
-	for (i = 0; i < h; i++)
+	for (i = 0; i < height; i++)
 	{
-		for (j = 0; j < w; j++)
+		for (j = 0; j < width; j++)
 		{
 			//Vector3D pixel = image->Data->Pixel<Vector3D>(j, i);
-			Vector4D pixel = m_image->Data->Pixel<Vector4D>(j, i);
-			float e = Dot(pixel, Vector4D(1.0, 1.0, 1.0, 0.0));
+			Vector3D pixel = m_image->Data->Pixel<Vector3D>(j, i);
+			float e = Dot(pixel, Vector3D(1.0, 1.0, 1.0));
 			if (e > e_max)
 			{
 				e_max = e;
@@ -310,7 +347,7 @@ bool ShaderSnake::FixParams(int handle, int height, int width, int components, T
 			{
 				e_min = e;
 			}
-			img[i * w + j] = e;
+			img[i * width + j] = e;
 		}
 	}
 
@@ -319,20 +356,20 @@ bool ShaderSnake::FixParams(int handle, int height, int width, int components, T
 	{
 		delta_e = 1.0 / delta_e;
 	}
-	for (i = 0; i < h; i++)
+	for (i = 0; i < height; i++)
 	{
-		for (j = 0; j < w; j++)
+		for (j = 0; j < width; j++)
 		{
-			m_image->Data->Pixel<Vector4D>(j, i).X = (img[i * w + j] - e_min) * delta_e;
-			m_image->Data->Pixel<Vector4D>(j, i).Y = (img[i * w + j] - e_min) * delta_e;
-			m_image->Data->Pixel<Vector4D>(j, i).Z = (img[i * w + j] - e_min) * delta_e;
+			m_image->Data->Pixel<Vector3D>(j, i) = (img[i * width + j] - e_min) * delta_e;
 		}
 	}
 	m_image->Setup();
 
 	delete[] img;
-	*/
+
+
 	return true;
+	*/
 }
 
 Texture2D* ShaderSnake::Output() const
@@ -398,7 +435,7 @@ void ShaderSnake::Resample()
 		{
 			if (j == 0 || j == m_size)
 			{
-				points->Pixel<Vector3D>(m_size, 0) = 0.5 * (points->Pixel<Vector3D>(i, 0) +
+				points->Pixel<Vector3D>(m_size, 0) =  0.5 * (points->Pixel<Vector3D>(i, 0) +
 					points->Pixel<Vector3D>(0, 0));
 			}
 			else
@@ -466,26 +503,19 @@ int ShaderSnake::Iterate()
 	
 	m_shader->SetUniformInteger("iSize", m_size);
 	m_shader->SetUniformInteger("iWindow", m_params.window);
-//	m_shader->SetUniformInteger("iWidth", m_image->Data->GetWidth());
-	m_shader->SetUniformInteger("iWidth", m_width);
-//	m_shader->SetUniformInteger("iHeight", m_image->Data->GetHeight());
-		m_shader->SetUniformInteger("iHeight", m_height);
+	m_shader->SetUniformInteger("iWidth", m_image->Data->GetWidth());
+	m_shader->SetUniformInteger("iHeight", m_image->Data->GetHeight());
 	m_shader->SetUniformFloat("fGamma", m_params.gamma);
 	m_shader->SetUniformFloat("fAvgDist", avg_dist);
 	m_shader->SetUniformVector("vParam", Vector3D(m_params.alpha, 
 												  m_params.beta, 
 												  m_params.kappa));
 
-	//m_image->Bind();
-	glBindFramebuffer ( GL_TEXTURE_2D, m_image );
+	m_image->Bind();
 	m_points_1->Bind();
 	m_points_2->Bind();
 
-	//m_shader->SetTexture("Image", m_image);
-
-	int location = glGetUniformLocation ( m_shader->GetProgramHandle(), "Image" );
-    glUniform1i ( location, m_image);
-
+	m_shader->SetTexture("Image", m_image);
 
 	if (m_odd_iter)
 	{
@@ -498,12 +528,12 @@ int ShaderSnake::Iterate()
 		m_shader->SetTexture("Points", m_points_2);
 	}
 
-	std::ofstream ofs("Neocortex_out.txt", std::ios_base::app);
+
+	std::ofstream ofs("Testing_Project_out.txt",std::ios_base::app);
 	ofs<<std::endl<<"Iteration #"<<inum<<" before"<<std::endl;
 	for (int f=0; f<m_size; f++)
 		ofs<<in_points->Pixel<Vector3D>(f,0).X<<"	"<<in_points->Pixel<Vector3D>(f,0).Y<<std::endl;
 	ofs<<std::endl;
-	
 
 	RunShader(m_size, 1);
 	
@@ -523,6 +553,7 @@ int ShaderSnake::Iterate()
 
 	m_shader->Unbind();
 
+
 	ofs<<std::endl<<"Iteration #"<<inum<<" after"<<std::endl;
 	for (int f=0; f<m_size; f++)
 		if (m_odd_iter)
@@ -540,13 +571,7 @@ int ShaderSnake::GetSize()
 {
 	return m_size;
 }
-void ShaderSnake::ResetTexture()
-{
-	//убиваем текстуру, сохран€€ ее хэндл
-//	m_image->SafeDestruction();
-//	delete m_image;
-	m_image=0;
-}
+
 ShaderSnake::ShaderSnake()
 {
 	inum=0;
@@ -569,12 +594,21 @@ ShaderSnake::ShaderSnake()
 	m_params.window = 2;
 }
 
+void ShaderSnake::ResetTexture()
+{
+	if (m_image)
+		m_image->~Texture2D();
+	m_image=NULL;
+}
+
 ShaderSnake::~ShaderSnake()
 {
 	Cleanup();
-	if (m_image)
-		ResetTexture();
+	ResetTexture();
 
 	delete m_shader;
 	m_shader = NULL;
+
+//	if (m_image)
+//		m_image->~Texture2D();
 }
