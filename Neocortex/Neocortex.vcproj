@@ -60,7 +60,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="OpenCL.lib opencv_core231d.lib opencv_highgui231d.lib opencv_video231d.lib opencv_ml231d.lib opencv_legacy231d.lib opencv_objdetect231d.lib opengl32.lib glut32.lib glu32.lib glaux.lib glfw.lib"
+				AdditionalDependencies="OpenCL.lib opencv_core231d.lib opencv_highgui231d.lib opencv_imgproc231d.lib opencv_video231d.lib opencv_ml231d.lib opencv_legacy231d.lib opencv_objdetect231d.lib opengl32.lib glut32.lib glu32.lib glaux.lib glfw.lib"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="..\Common\;..\Common\OpenCV\build\x86\vc9\lib;..\Common\GLFW\Lib"
 				IgnoreDefaultLibraryNames="libc.lib"
@@ -237,7 +237,15 @@
 				Name="Common"
 				>
 				<File
-					RelativePath="..\Common\ScanData.cpp"
+					RelativePath="..\Common\Filters.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\Common\Methods.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\Common\Structures.cpp"
 					>
 				</File>
 				<Filter
@@ -349,7 +357,7 @@
 				Name="Segmentation"
 				>
 				<File
-					RelativePath="..\Segmentation\K-means\K-means.cpp"
+					RelativePath="..\Segmentation\K-means.cpp"
 					>
 				</File>
 			</Filter>
@@ -433,7 +441,7 @@
 				Name="Segmentation"
 				>
 				<File
-					RelativePath="..\Segmentation\K-means\K-means.h"
+					RelativePath="..\Segmentation\K-means.h"
 					>
 				</File>
 			</Filter>
@@ -441,35 +449,27 @@
 				Name="Reconstruction"
 				>
 				<File
-					RelativePath="..\Reconstruction\include\c_ballPivot.h"
+					RelativePath="..\Reconstruction\c_ballPivot.h"
 					>
 				</File>
 				<File
-					RelativePath="..\Reconstruction\include\c_edge.h"
+					RelativePath="..\Reconstruction\c_edge.h"
 					>
 				</File>
 				<File
-					RelativePath="..\Reconstruction\include\c_object.h"
+					RelativePath="..\Reconstruction\c_object.h"
 					>
 				</File>
 				<File
-					RelativePath="..\Reconstruction\include\c_point.h"
+					RelativePath="..\Reconstruction\c_point.h"
 					>
 				</File>
 				<File
-					RelativePath="..\Reconstruction\include\glut.h"
+					RelativePath="..\Reconstruction\glut.h"
 					>
 				</File>
 				<File
-					RelativePath="..\Reconstruction\include\lib.h"
-					>
-				</File>
-				<File
-					RelativePath="..\Reconstruction\include\my_struct.h"
-					>
-				</File>
-				<File
-					RelativePath="..\Reconstruction\include\struct.h"
+					RelativePath="..\Reconstruction\struct.h"
 					>
 				</File>
 			</Filter>
@@ -477,7 +477,15 @@
 				Name="Common"
 				>
 				<File
-					RelativePath="..\Common\ScanData.h"
+					RelativePath="..\Common\Filters.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Common\Methods.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Common\Structures.h"
 					>
 				</File>
 				<Filter
