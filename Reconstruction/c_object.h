@@ -65,4 +65,4 @@ void c_object::ready()
 	points.clear();
 }
 
-#endif
+#endif C_OBJECT_H

@@ -6,19 +6,19 @@
 #include <fstream>
 #include <conio.h>
 #include <windows.h>
-#include "include/glut.h"
 #include <math.h>
 #include <queue>
 #include <vector>
 #include <list>
 #include <set>
 
-#include "my_struct.h"
+#include "glut.h"
+#include "struct.h"
 #include "c_point.h"
 #include "c_edge.h"
 #include "c_object.h"
 
-#include "ScanData.h"
+#include "Structures.h"
 
 using namespace std;
 
@@ -105,12 +105,22 @@ class ballPivot
 public:
 	ballPivot();
 	ballPivot(char *file);																																								// чтение исходных данных из bin-файла
-	ballPivot(ScanData *InputData, int MeshStep_X, int MeshStep_Y, int MeshStep_Z, GLfloat MinVoxelDensity, GLfloat MaxVoxelDensity);													// из сохранённого набора данных
-	ballPivot(ScanData *InputData, TVoxelSegments *VoxelSegments, int SegmentIndex, int MeshStep_X, int MeshStep_Y, int MeshStep_Z, GLfloat MinVoxelDensity, GLfloat MaxVoxelDensity);	// из 3D-сегмента	
-	ballPivot(ScanData *InputData, TVoxelSegments *VoxelSegments, vector <size_t> path, int MeshStep_X, int MeshStep_Y, int MeshStep_Z, GLfloat MinVoxelDensity, GLfloat MaxVoxelDensity);	// из цепочки 2D-сегментов
+	ballPivot(TVoxelsData *InputData, int MeshStep_X, int MeshStep_Y, int MeshStep_Z, GLfloat MinVoxelDensity, GLfloat MaxVoxelDensity);													// из сохранённого набора данных
+	ballPivot(TVoxelsData *InputData, int SegmentIndex, int MeshStep_X, int MeshStep_Y, int MeshStep_Z, GLfloat MinVoxelDensity, GLfloat MaxVoxelDensity);	// из 3D-сегмента	
+	ballPivot(TVoxelsData *InputData, vector <size_t> path, int MeshStep_X, int MeshStep_Y, int MeshStep_Z, GLfloat MinVoxelDensity, GLfloat MaxVoxelDensity);	// из цепочки 2D-сегментов
 	~ballPivot();
 	void buildMesh();
 	void renderMesh();
+};
+
+struct TVolumeSegment			// объёмный реконструируемый сегмент
+{
+ ballPivot object;				// объект для построения сетки
+ TColor color;					// цвет сегмента
+ bool visible;					// атрибут видимости
+
+ // Конструктор по умолчанию
+ TVolumeSegment() { object = ballPivot(); }
 };
 
 void ballPivot::DrawTriangle(int &p1, int &p2, int &p3)
@@ -927,7 +937,7 @@ ballPivot::ballPivot(char *file)
 	cout<<endl<<COUNT_OF_ALL_SHOWED_POINTS<<endl;
 }
 
-ballPivot::ballPivot(ScanData* InputData, int MeshStep_X, int MeshStep_Y, int MeshStep_Z, GLfloat MinVoxelDensity, GLfloat MaxVoxelDensity)
+ballPivot::ballPivot(TVoxelsData* InputData, int MeshStep_X, int MeshStep_Y, int MeshStep_Z, GLfloat MinVoxelDensity, GLfloat MaxVoxelDensity)
 {
  MIN_DENSITY = MinVoxelDensity;
  MAX_DENSITY = MaxVoxelDensity;
@@ -944,11 +954,11 @@ ballPivot::ballPivot(ScanData* InputData, int MeshStep_X, int MeshStep_Y, int Me
  TRIANGLES_COUNT=0;
 
  // Подсчитываем количество видимых вокселов
- for (int i = 0; i < InputData->sizeX; i+=STEP_X)
- for (int j = 0; j < InputData->sizeY; j+=STEP_Y)
- for (int k = 0; k < InputData->sizeZ; k+=STEP_Z)
- if(InputData->data[i+InputData->sizeX*j+InputData->sizeX*InputData->sizeY*k]>=MIN_DENSITY && 
-	 InputData->data[i+InputData->sizeX*j+InputData->sizeX*InputData->sizeY*k]<=MAX_DENSITY)
+ for (size_t i = 0; i < InputData->sizeX; i+=STEP_X)
+ for (size_t j = 0; j < InputData->sizeY; j+=STEP_Y)
+ for (size_t k = 0; k < InputData->sizeZ; k+=STEP_Z)
+	 if((InputData->Density[InputData->GetDensity(i, j, k)]>=MIN_DENSITY) && 
+	 (InputData->Density[InputData->GetDensity(i, j, k)]<=MAX_DENSITY))
 		 COUNT_OF_ALL_SHOWED_POINTS++;
 
  delete [] all_points;
@@ -957,21 +967,21 @@ ballPivot::ballPivot(ScanData* InputData, int MeshStep_X, int MeshStep_Y, int Me
 
  // Инициализируем значения всех видимых вокселов
  int num=0;
- for (int i = 0; i < InputData->sizeX; i+=STEP_X)
- for (int j = 0; j < InputData->sizeY; j+=STEP_Y)
- for (int k = 0; k < InputData->sizeZ; k+=STEP_Z)
- if(InputData->data[k*InputData->sizeX*InputData->sizeY+j*InputData->sizeX+i]>=MIN_DENSITY && 
-	 InputData->data[k*InputData->sizeX*InputData->sizeY+j*InputData->sizeX+i]<=MAX_DENSITY)
+ for (size_t i = 0; i < InputData->sizeX; i+=STEP_X)
+ for (size_t j = 0; j < InputData->sizeY; j+=STEP_Y)
+ for (size_t k = 0; k < InputData->sizeZ; k+=STEP_Z)
+ if((InputData->Density[k*InputData->sizeX*InputData->sizeY+j*InputData->sizeX+i]>=MIN_DENSITY) && 
+	(InputData->Density[k*InputData->sizeX*InputData->sizeY+j*InputData->sizeX+i]<=MAX_DENSITY))
 	 {
 	  all_points[num].setX(i/STEP_X);
 	  all_points[num].setY(j/STEP_Y);
 	  all_points[num].setZ(k/STEP_Z);
-	  all_points[num].setVal(InputData->data[k*InputData->sizeX*InputData->sizeY+j*InputData->sizeX+i]);
+	  all_points[num].setVal(InputData->Density[InputData->ReducedIndex(i, j, k)]);
 	  num++;
 	 }
 }
 
-ballPivot::ballPivot(ScanData *InputData, TVoxelSegments *VoxelSegments, vector <size_t> path, int MeshStep_X, int MeshStep_Y, int MeshStep_Z, GLfloat MinVoxelDensity, GLfloat MaxVoxelDensity)
+ballPivot::ballPivot(TVoxelsData *InputData, vector <size_t> path, int MeshStep_X, int MeshStep_Y, int MeshStep_Z, GLfloat MinVoxelDensity, GLfloat MaxVoxelDensity)
 {
  MIN_DENSITY = MinVoxelDensity;
  MAX_DENSITY = MaxVoxelDensity;
@@ -984,9 +994,9 @@ ballPivot::ballPivot(ScanData *InputData, TVoxelSegments *VoxelSegments, vector 
 
  bool *IS_USED_X, *IS_USED_Y, *IS_USED_Z;
 
- IS_USED_X = new bool [InputData->sizeX]; for (int i = 0; i < InputData->sizeX; ++i) IS_USED_X[i] = false;
- IS_USED_Y = new bool [InputData->sizeY]; for (int j = 0; j < InputData->sizeY; ++j) IS_USED_Y[j] = false;
- IS_USED_Z = new bool [InputData->sizeZ]; for (int k = 0; k < InputData->sizeZ; ++k) IS_USED_Z[k] = false;
+ IS_USED_X = new bool [InputData->sizeX]; for (size_t i = 0; i < InputData->sizeX; ++i) IS_USED_X[i] = false;
+ IS_USED_Y = new bool [InputData->sizeY]; for (size_t j = 0; j < InputData->sizeY; ++j) IS_USED_Y[j] = false;
+ IS_USED_Z = new bool [InputData->sizeZ]; for (size_t k = 0; k < InputData->sizeZ; ++k) IS_USED_Z[k] = false;
 
  vector <size_t> Index_X, Index_Y, Index_Z;
  Index_X.clear(); Index_Y.clear(); Index_Z.clear();
@@ -998,9 +1008,9 @@ ballPivot::ballPivot(ScanData *InputData, TVoxelSegments *VoxelSegments, vector 
 
  for (; iter != _end; ++iter, ++LayerIndex)
  {
-  for (int i = 0; i < InputData->sizeX; ++i)
-  for (int j = 0; j < InputData->sizeY; ++j)
-  if (VoxelSegments[LayerIndex*InputData->sizeX*InputData->sizeY+j*InputData->sizeX+i].SegmentIndex_2D == *iter)
+  for (size_t i = 0; i < InputData->sizeX; ++i)
+  for (size_t j = 0; j < InputData->sizeY; ++j)
+  if (InputData->VoxelSegments[InputData->ReducedIndex(i, j, LayerIndex)].SegmentIndex_2D == *iter)
   {
    if (!IS_USED_X[i]) {COUNT_OF_POINTS_X++; Index_X.push_back(i); IS_USED_X[i] = true;}
    if (!IS_USED_Y[j]) {COUNT_OF_POINTS_Y++; Index_Y.push_back(j); IS_USED_Y[j] = true;}
@@ -1018,8 +1028,8 @@ ballPivot::ballPivot(ScanData *InputData, TVoxelSegments *VoxelSegments, vector 
  for (int i = 0; i < COUNT_OF_POINTS_X; ++i)
  for (int j = 0; j < COUNT_OF_POINTS_Y; ++j)
  for (int k = 0; k < COUNT_OF_POINTS_Z; ++k)
- if ((InputData->data[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]>=MIN_DENSITY) &&
-	 (InputData->data[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]<=MAX_DENSITY))
+ if ((InputData->Density[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]>=MIN_DENSITY) &&
+	 (InputData->Density[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]<=MAX_DENSITY))
  COUNT_OF_ALL_SHOWED_POINTS++; 
 
  // delete [] all_points;
@@ -1030,20 +1040,20 @@ ballPivot::ballPivot(ScanData *InputData, TVoxelSegments *VoxelSegments, vector 
  for (int i = 0; i < COUNT_OF_POINTS_X; ++i)
  for (int j = 0; j < COUNT_OF_POINTS_Y; ++j)
  for (int k = 0; k < COUNT_OF_POINTS_Z; ++k)
- if ((InputData->data[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]>=MIN_DENSITY) &&
-	 (InputData->data[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]<=MAX_DENSITY))
+ if ((InputData->Density[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]>=MIN_DENSITY) &&
+	 (InputData->Density[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]<=MAX_DENSITY))
  {
   all_points[num].setX(i);
   all_points[num].setY(j);
   all_points[num].setZ(k);
-  all_points[num].setVal(InputData->data[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]);
+  all_points[num].setVal(InputData->Density[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]);
   num++;
  }
 	
  delete [] IS_USED_X; delete [] IS_USED_Y; delete [] IS_USED_Z;
 }
 
-ballPivot::ballPivot(ScanData *InputData, TVoxelSegments *VoxelSegments, int SegmentIndex, int MeshStep_X, int MeshStep_Y, int MeshStep_Z, GLfloat MinVoxelDensity, GLfloat MaxVoxelDensity)
+ballPivot::ballPivot(TVoxelsData *InputData, int SegmentIndex, int MeshStep_X, int MeshStep_Y, int MeshStep_Z, GLfloat MinVoxelDensity, GLfloat MaxVoxelDensity)
 {
  MIN_DENSITY = MinVoxelDensity;
  MAX_DENSITY = MaxVoxelDensity;
@@ -1056,17 +1066,17 @@ ballPivot::ballPivot(ScanData *InputData, TVoxelSegments *VoxelSegments, int Seg
 
  bool *IS_USED_X, *IS_USED_Y, *IS_USED_Z;
 
- IS_USED_X = new bool [InputData->sizeX]; for (int i = 0; i < InputData->sizeX; ++i) IS_USED_X[i] = false;
- IS_USED_Y = new bool [InputData->sizeY]; for (int j = 0; j < InputData->sizeY; ++j) IS_USED_Y[j] = false;
- IS_USED_Z = new bool [InputData->sizeZ]; for (int k = 0; k < InputData->sizeZ; ++k) IS_USED_Z[k] = false;
+ IS_USED_X = new bool [InputData->sizeX]; for (size_t i = 0; i < InputData->sizeX; ++i) IS_USED_X[i] = false;
+ IS_USED_Y = new bool [InputData->sizeY]; for (size_t j = 0; j < InputData->sizeY; ++j) IS_USED_Y[j] = false;
+ IS_USED_Z = new bool [InputData->sizeZ]; for (size_t k = 0; k < InputData->sizeZ; ++k) IS_USED_Z[k] = false;
 
  vector <size_t> Index_X, Index_Y, Index_Z;
  Index_X.clear(); Index_Y.clear(); Index_Z.clear();
 
- for (int i = 0; i < InputData->sizeX; ++i)
- for (int j = 0; j < InputData->sizeY; ++j)
- for (int k = 0; k < InputData->sizeZ; ++k)
- if (VoxelSegments[k*InputData->sizeX*InputData->sizeY+j*InputData->sizeX+i].SegmentIndex_3D == SegmentIndex) 
+ for (size_t i = 0; i < InputData->sizeX; ++i)
+ for (size_t j = 0; j < InputData->sizeY; ++j)
+ for (size_t k = 0; k < InputData->sizeZ; ++k)
+ if (InputData->VoxelSegments[k*InputData->sizeX*InputData->sizeY+j*InputData->sizeX+i].SegmentIndex_3D == SegmentIndex) 
  {
   //COUNT_OF_ALL_POINTS++;
   if (!IS_USED_X[i]) {COUNT_OF_POINTS_X++; Index_X.push_back(i); IS_USED_X[i] = true;}
@@ -1084,8 +1094,8 @@ ballPivot::ballPivot(ScanData *InputData, TVoxelSegments *VoxelSegments, int Seg
   for (int i = 0; i < COUNT_OF_POINTS_X; ++i)
 	 for (int j = 0; j < COUNT_OF_POINTS_Y; ++j)
 		 for (int k = 0; k < COUNT_OF_POINTS_Z; ++k)
-			 if ((InputData->data[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]>=MIN_DENSITY) &&
-				 (InputData->data[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]<=MAX_DENSITY))
+			 if ((InputData->Density[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]>=MIN_DENSITY) &&
+				 (InputData->Density[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]<=MAX_DENSITY))
 					 COUNT_OF_ALL_SHOWED_POINTS++; 
 
  // delete [] all_points;
@@ -1096,13 +1106,13 @@ ballPivot::ballPivot(ScanData *InputData, TVoxelSegments *VoxelSegments, int Seg
  for (int i = 0; i < COUNT_OF_POINTS_X; ++i)
  for (int j = 0; j < COUNT_OF_POINTS_Y; ++j)
  for (int k = 0; k < COUNT_OF_POINTS_Z; ++k)
- if ((InputData->data[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]>=MIN_DENSITY) &&
-	 (InputData->data[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]<=MAX_DENSITY))
+ if ((InputData->Density[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]>=MIN_DENSITY) &&
+	 (InputData->Density[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]<=MAX_DENSITY))
 	 {
 	  all_points[num].setX(i);
 	  all_points[num].setY(j);
 	  all_points[num].setZ(k);
-	  all_points[num].setVal(InputData->data[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]);
+	  all_points[num].setVal(InputData->Density[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]);
 	  num++;
 	 }
 	
@@ -1165,4 +1175,4 @@ ballPivot::~ballPivot()
 	delete []triangles_res; */
 }
 
-#endif
+#endif C_BALLPIVOT_H

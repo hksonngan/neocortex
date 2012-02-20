@@ -593,4 +593,4 @@ extern int APIENTRY glutGameModeGet(GLenum mode);
 # undef WINGDIAPI
 #endif
 
-#endif                  /* __glut_h__ */
+#endif __glut_h__

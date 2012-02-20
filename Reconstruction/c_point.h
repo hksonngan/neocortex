@@ -295,4 +295,4 @@ c_point c_point::operator*(const float mn) const
 	return res;
 }
 
-#endif
+#endif C_POINT_H

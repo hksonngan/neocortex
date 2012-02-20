@@ -1,5 +1,5 @@
-#ifndef MY_STRUCT_H
-#define MY_STRUCT_H
+#ifndef STRUCT_H
+#define STRUCT_H
 
 #include "c_point.h"
 #include "c_edge.h"
@@ -34,4 +34,4 @@ struct _object
 	c_edge seed;
 	set <int> points;
 };
-#endif MY_STRUCT_H
+#endif STRUCT_H
