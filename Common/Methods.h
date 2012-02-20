@@ -1,0 +1,10 @@
+#include "Structures.h"
+
+System::String^ GetStringOfColor(TColor Color);																			// получить строковое представление цвета
+
+cv::Point_<short> MinMaxDensityOfSegment_2D(TVoxelsData* Data, size_t LayerIndex, int SegmentIndex);					// минимальное и максимальное значения плотности 2D-сегмента
+cv::Point_<short> MinMaxDensityOfSegment_3D(TVoxelsData* Data, size_t StartLayerIndex, int SegmentIndex);				// минимальное и максимальное значения плотности 3D-сегмента
+cv::Point2f DensityMeanDevOfSegment_2D(TVoxelsData* Data, size_t LayerIndex, int SegmentIndex);							// мат. ожидание и дисперсия плотности вокселов в 2D-сегменте
+cv::Vec4f MeanDevXYOfSegment_2D(TVoxelsData* Data, size_t LayerIndex, int SegmentIndex);								// мат. ожидание и дисперсия координат вокселов в 2D-сегменте
+
+void SegmentsSort(const TVoxelsData* Data, std::vector <TSegment>& Segments, size_t LayerIndex, int left, int right);	// сортировка сегментов по возрастанию диапазонов значений плотности
