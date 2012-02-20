@@ -16,13 +16,13 @@ void RunShader(int width, int height)
 		glTexCoord2f(0.0F, 0.0F );  
 		glVertex2f(0.0F, 0.0F);
 
-		glTexCoord2f(0.0F, height);
+		glTexCoord2f(0.0F, (GLfloat)height);
 		glVertex2f(0.0F, 1.0F);
 
-		glTexCoord2f(width, height); 
+		glTexCoord2f((GLfloat)width, (GLfloat)height); 
 		glVertex2f(1.0F, 1.0F);
 
-		glTexCoord2f(width, 0.0F ); 
+		glTexCoord2f((GLfloat)width, 0.0F); 
 		glVertex2f(1.0F, 0.0F);
 	}
 	glEnd(); 
