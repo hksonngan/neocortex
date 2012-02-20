@@ -51,22 +51,22 @@ void ShaderSnake::AddSeed_Rect(int x1, int y1, int x2, int y2 )
 
 	for (int i=0; i<forx; i++)
 	{
-		points->Data->Pixel<Vector3D>(i,0)=Vector3D(x1+i*(m_params.window-1), y1, 0.0);
+		points->Data->Pixel<Vector3D>(i,0)=Vector3D((float)(x1+i*(m_params.window-1)), (float)y1, 0.0f);
 	}
 
 	for (int i=forx; i<forx+fory; ++i)
 	{
-		points->Data->Pixel<Vector3D>(i,0)=Vector3D(x2, y1-(i-forx)*(m_params.window), 0.0);
+		points->Data->Pixel<Vector3D>(i,0)=Vector3D((float)x2, (float)(y1-(i-forx)*(m_params.window)), 0.0f);
 	}
 
 	for (int i=forx+fory; i<2*forx+fory; ++i)
 	{
-		points->Data->Pixel<Vector3D>(i,0)=Vector3D(x2-(i-forx-fory)*(m_params.window-1), y2, 0.0);
+		points->Data->Pixel<Vector3D>(i,0)=Vector3D((float)(x2-(i-forx-fory)*(m_params.window-1)), (float)y2, 0.0f);
 	}
 
 	for (int i=2*forx+fory; i<2*forx+2*fory; ++i)
 	{
-		points->Data->Pixel<Vector3D>(i,0)=Vector3D(x1, y2-(i-2*forx+fory)*(m_params.window-1), 0.0);
+		points->Data->Pixel<Vector3D>(i,0)=Vector3D((float)x1, (float)(y2-(i-2*forx+fory)*(m_params.window-1)), 0.0f);
 	}
 
 	points->Setup();
@@ -82,11 +82,10 @@ void ShaderSnake::AddSeed_Ell(int x, int y, int a, int b)
 	{
 		points = m_points_1;
 	}
-	//m_size = Pts.size();
 	m_size=2*(a+b);
-	float step=2*3.14/m_size;
-	for (float i=0; i<m_size; i++)
-		points->Data->Pixel<Vector3D>(i,0)=Vector3D((int)a*cos(i*step)+x, (int)b*sin(i*step)+y, 0.0);
+	float step=2*3.14f/m_size;
+	for (int i=0; i<m_size; i++)
+		points->Data->Pixel<Vector3D>(i,0)=Vector3D((a*cos(i*step)+x), (b*sin(i*step)+y), 0.0f);
 	points->Setup();
 }
 
@@ -117,7 +116,7 @@ bool ShaderSnake::Init()
 		glGetShaderInfoLog(m_shader->GetVertexHandle(), BUFFER_LENGTH, &dummy, szBuf);
 		if (szBuf[0] == 0)
 		{
-			strcpy(szBuf, "File not found!");
+			strcpy_s(szBuf, "File not found!");
 		}
 		MessageBoxA(0, szBuf, current_file.c_str(), 0);
 
@@ -136,7 +135,7 @@ bool ShaderSnake::Init()
 		glGetShaderInfoLog(m_shader->GetFragmentHandle(), BUFFER_LENGTH, &dummy, szBuf);
 		if (szBuf[0] == 0)
 		{
-			strcpy(szBuf, "File not found!");
+			strcpy_s(szBuf, "File not found!");
 		}
 		MessageBoxA(0, szBuf, current_file.c_str(),0);
 
@@ -154,7 +153,7 @@ bool ShaderSnake::Init()
 		glGetShaderInfoLog(m_shader->GetProgramHandle(), BUFFER_LENGTH, &dummy, szBuf);
 		if (szBuf[0] == 0)
 		{
-			strcpy(szBuf, "Error building 'shader snake' shader program.");
+			strcpy_s(szBuf, "Error building 'shader snake' shader program.");
 		}
 		MessageBoxA(0, szBuf, "Fatal!", 0);
 
@@ -262,10 +261,10 @@ void ShaderSnake::AddSeed(int x, int y)
 	// Set 4 points around the given point
 	m_size = 4;
 
-	points->Data->Pixel<Vector3D>(0, 0) = Vector3D(x - m_params.window - 1, y, 0.0);
-	points->Data->Pixel<Vector3D>(1, 0) = Vector3D(x, y - m_params.window - 1, 0.0);
-	points->Data->Pixel<Vector3D>(2, 0) = Vector3D(x + m_params.window + 1, y, 0.0);
-	points->Data->Pixel<Vector3D>(3, 0) = Vector3D(x, y + m_params.window + 1, 0.0);
+	points->Data->Pixel<Vector3D>(0, 0) = Vector3D((float)(x - m_params.window - 1), (float)y, 0.0f);
+	points->Data->Pixel<Vector3D>(1, 0) = Vector3D((float)x, (float)(y - m_params.window - 1), 0.0f);
+	points->Data->Pixel<Vector3D>(2, 0) = Vector3D((float)(x + m_params.window + 1), (float)y, 0.0f);
+	points->Data->Pixel<Vector3D>(3, 0) = Vector3D((float)x, (float)(y + m_params.window + 1), 0.0f);
 	points->Setup();
 }
 
@@ -304,7 +303,7 @@ bool ShaderSnake::FixParams(int image, int height, int width, int components, TS
 	float delta_e = e_max - e_min;
 	if (delta_e > 0.0)
 	{
-		delta_e = 1.0 / delta_e;
+		delta_e = 1.0f / delta_e;
 	}
 	delete [] raw_img; raw_img=NULL;
 	
@@ -496,7 +495,7 @@ int ShaderSnake::Iterate()
 	{
 		avg_dist += Distance(in_points->Pixel<Vector3D>(i, 0), in_points->Pixel<Vector3D>(j, 0));
 	}
-	avg_dist *= 1.0 / m_size;
+	avg_dist *= 1.0f / m_size;
 
 	// Setup input and output buffers
 	m_shader->Bind();
