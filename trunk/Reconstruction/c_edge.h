@@ -247,4 +247,4 @@ void c_edge::add_point(int point_num)
 	}
 }
 
-#endif
+#endif C_EDGE_H
