@@ -957,8 +957,8 @@ ballPivot::ballPivot(TVoxelsData* InputData, int MeshStep_X, int MeshStep_Y, int
  for (size_t i = 0; i < InputData->sizeX; i+=STEP_X)
  for (size_t j = 0; j < InputData->sizeY; j+=STEP_Y)
  for (size_t k = 0; k < InputData->sizeZ; k+=STEP_Z)
-	 if((InputData->Density[InputData->GetDensity(i, j, k)]>=MIN_DENSITY) && 
-	 (InputData->Density[InputData->GetDensity(i, j, k)]<=MAX_DENSITY))
+	 if((InputData->Density[InputData->ReducedIndex(i, j, k)]>=MIN_DENSITY) && 
+	 (InputData->Density[InputData->ReducedIndex(i, j, k)]<=MAX_DENSITY))
 		 COUNT_OF_ALL_SHOWED_POINTS++;
 
  delete [] all_points;
@@ -970,8 +970,8 @@ ballPivot::ballPivot(TVoxelsData* InputData, int MeshStep_X, int MeshStep_Y, int
  for (size_t i = 0; i < InputData->sizeX; i+=STEP_X)
  for (size_t j = 0; j < InputData->sizeY; j+=STEP_Y)
  for (size_t k = 0; k < InputData->sizeZ; k+=STEP_Z)
- if((InputData->Density[k*InputData->sizeX*InputData->sizeY+j*InputData->sizeX+i]>=MIN_DENSITY) && 
-	(InputData->Density[k*InputData->sizeX*InputData->sizeY+j*InputData->sizeX+i]<=MAX_DENSITY))
+ if((InputData->Density[InputData->ReducedIndex(i, j, k)]>=MIN_DENSITY) && 
+	(InputData->Density[InputData->ReducedIndex(i, j, k)]<=MAX_DENSITY))
 	 {
 	  all_points[num].setX(i/STEP_X);
 	  all_points[num].setY(j/STEP_Y);

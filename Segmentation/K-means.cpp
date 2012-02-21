@@ -1,6 +1,7 @@
 #include <math.h>
 #include <time.h>
 #include <algorithm>
+#include "Methods.h"
 #include "K-means.h"
 
 using namespace cv;
@@ -72,14 +73,7 @@ KMeansDensityMethod::KMeansDensityMethod(TLayer layer) : KMeansMethod <float> (l
 KMeansDensityMethod::KMeansDensityMethod() : KMeansMethod <float> () {}
 
 // Вычисление центра тяжести для i-ого кластера
-float KMeansDensityMethod::GetMean(size_t i)
-{
- float Sum = 0;
- vector <size_t>::iterator iter = Clusters[i].begin();
- vector <size_t>::iterator _end = Clusters[i].end();
- for (; iter!=_end; ++iter) Sum += InputData->Density[*iter];
- return Sum/Clusters[i].size();
-}
+float KMeansDensityMethod::GetMean(size_t i) { return GetMeanDensity(InputData, Clusters[i]); }
 
 float KMeansDensityMethod::EmptyClusterValue() { return -1.0f; }
 
@@ -98,22 +92,7 @@ KMeansSpatialMethod::KMeansSpatialMethod(TVoxelsData *DataValue) : KMeansMethod 
 KMeansSpatialMethod::KMeansSpatialMethod(TLayer layer) : KMeansMethod <Point2f> (layer) {}
 KMeansSpatialMethod::KMeansSpatialMethod() : KMeansMethod <Point2f> () {}
 
-Point2f KMeansSpatialMethod::GetMean(size_t i)
-{
-	Point2f result(0.0f, 0.0f);
-	size_t N = Clusters[i].size();
-	vector <size_t>::iterator iter = Clusters[i].begin();
-	vector <size_t>::iterator iter_end = Clusters[i].end();
-	for ( ; iter != iter_end; ++iter)
-	{
-		size_t x = *iter%InputData->sizeX,  
-			   y = InputData->sizeZ == 1 ? (*iter-x)/InputData->sizeX :
-			                               ((*iter-x)/InputData->sizeX)%InputData->sizeY;
-		result += Point2f((float)x, (float)y);
-	}
-		
-	return (1.0f/Clusters[i].size())*result;
-}
+Point2f KMeansSpatialMethod::GetMean(size_t i) { return GetMeanCoords_2D(InputData, Clusters[i]); }
 
 Point2f KMeansSpatialMethod::EmptyClusterValue() { return Point2f(-1.0f, -1.0f); }
 
@@ -122,8 +101,7 @@ bool KMeansSpatialMethod::IsClusterNotEmpty(size_t i) { return means[i].dot(-Emp
 float KMeansSpatialMethod::GetVoxelDistance(size_t j, size_t k)
 {
 	size_t x = j%InputData->sizeX, 
-		   y = InputData->sizeZ == 1 ? (j-x)/InputData->sizeX : 
-									  ((j-x)/InputData->sizeX)%InputData->sizeY;
+		   y = ((j-x)/InputData->sizeX)%InputData->sizeY;
 	return (float)cv::norm(Vec2f((float)x, (float)y), Vec2f(means[k].x, means[k].y));
 }
 
@@ -131,25 +109,21 @@ float KMeansSpatialMethod::GetVoxelDistance(size_t j, size_t k)
 
 #pragma region Класс KMeansDensitySpatialMethod 
 
-KMeansDensitySpatialMethod::KMeansDensitySpatialMethod(TVoxelsData *DataValue) : KMeansMethod <Point3f> (DataValue) { }
-KMeansDensitySpatialMethod::KMeansDensitySpatialMethod(TLayer layer) : KMeansMethod <Point3f> (layer) { InputData->CalcDensityVariance(); InputData->CalcXYVariance(); }
+KMeansDensitySpatialMethod::KMeansDensitySpatialMethod(TVoxelsData *DataValue) : KMeansMethod <Point3f> (DataValue) 
+{ 
+	InputData->CalcDensityVariance(); 
+	InputData->CalcXYVariance(); 
+}
+
+KMeansDensitySpatialMethod::KMeansDensitySpatialMethod(TLayer layer) : KMeansMethod <Point3f> (layer) 
+{ 
+	InputData->CalcDensityVariance(); 
+	InputData->CalcXYVariance(); 
+}
+
 KMeansDensitySpatialMethod::KMeansDensitySpatialMethod() : KMeansMethod <Point3f> () {}
 
-Point3f KMeansDensitySpatialMethod::GetMean(size_t i)
-{
-	Point3f result(0.0f, 0.0f, 0.0f);
-	size_t N = Clusters[i].size();
-	vector <size_t>::iterator iter = Clusters[i].begin();
-	vector <size_t>::iterator iter_end = Clusters[i].end();
-	for ( ; iter != iter_end; ++iter)
-	{
-		size_t x = *iter%InputData->sizeX,  
-			   y = InputData->sizeZ == 1 ? (*iter-x)/InputData->sizeX :
-			                               ((*iter-x)/InputData->sizeX)%InputData->sizeY;
-		result += Point3f((float)InputData->Density[*iter], (float)x, (float)y);
-	}
-	return (1.0f/Clusters[i].size())*result;
-}
+Point3f KMeansDensitySpatialMethod::GetMean(size_t i) { return GetMeanDensityCoords_2D(InputData, Clusters[i]); }
 
 Point3f KMeansDensitySpatialMethod::EmptyClusterValue() { return Point3f(-1.0f, -1.0f, -1.0f); }
 
@@ -158,8 +132,7 @@ bool KMeansDensitySpatialMethod::IsClusterNotEmpty(size_t i) { return means[i].d
 float KMeansDensitySpatialMethod::GetVoxelDistance(size_t j, size_t k)
 {
 	size_t x = j%InputData->sizeX, 
-		   y = InputData->sizeZ == 1 ? (j-x)/InputData->sizeX : 
-									  ((j-x)/InputData->sizeX)%InputData->sizeY;
+		   y = ((j-x)/InputData->sizeX)%InputData->sizeY;
 	cv::Mat point = (cv::Mat_<float>(3, 1) << (float)InputData->Density[j], (float)x, (float)y);
 	cv::Mat center = (cv::Mat_<float>(3, 1) << means[k].x, means[k].y, means[k].z);
 	cv::Mat Icovar = (cv::Mat_<float>(3, 3) << 1.0f/InputData->DensityVariance, 0.0f, 0.0f, 0.0f, 1.0f/InputData->XVariance, 0.0f, 0.0f, 0.0f, 1.0f/InputData->YVariance); 
@@ -176,17 +149,11 @@ KMeansConditionalMethod <float> (DataValue, LowBorder, HighBorder) {}
 KMeansConditionalDensityMethod::KMeansConditionalDensityMethod(TLayer layer, short LowBorder, short HighBorder) :
 KMeansConditionalMethod <float> (layer, LowBorder, HighBorder) {}
 
-float KMeansConditionalDensityMethod::GetMean(size_t i)
-{
-	float result = 0.0f;
-	for (size_t j = 0; j < Clusters[i].size(); ++j)
-		result += InputData->Density[Clusters[i][VoxelsInRange.at(j)]];
-	return result/Clusters[i].size();
-}
+float KMeansConditionalDensityMethod::GetMean(size_t i) { return GetMeanDensity(InputData, Clusters[i]); }
 
 float KMeansConditionalDensityMethod::EmptyClusterValue() { return -2.0f; }
 
-bool KMeansConditionalDensityMethod::IsClusterNotEmpty(size_t i) { return means[i] >= 0.0f; }
+bool KMeansConditionalDensityMethod::IsClusterNotEmpty(size_t i) { return means[i] >= -1.0f; }
 
 float KMeansConditionalDensityMethod::GetVoxelDistance(size_t j, size_t k)
 {
@@ -203,29 +170,16 @@ KMeansConditionalMethod <Point2f> (DataValue, LowBorder, HighBorder) {}
 KMeansConditionalSpatialMethod::KMeansConditionalSpatialMethod(TLayer layer, short LowBorder, short HighBorder) :
 KMeansConditionalMethod <Point2f> (layer, LowBorder, HighBorder) {}
 
-Point2f KMeansConditionalSpatialMethod::GetMean(size_t i)
-{
-	Point2f result(0.0f, 0.0f);
-	for (size_t j = 0; j < Clusters[i].size(); ++j)
-	{
-		size_t x = VoxelsInRange[j]%InputData->sizeX,  
-			   y = InputData->sizeZ == 1 ? (VoxelsInRange[j]-x)/InputData->sizeX :
-			                              ((VoxelsInRange[j]-x)/InputData->sizeX)%InputData->sizeY;
-		result += Point2f((float)x, (float)y);
-	}
-
-	return (1.0f/Clusters[i].size())*result;
-}
+Point2f KMeansConditionalSpatialMethod::GetMean(size_t i) { return GetMeanCoords_2D(InputData, Clusters[i]); }
 
 Point2f KMeansConditionalSpatialMethod::EmptyClusterValue() { return Point2f(-2.0f, -2.0f); }
 
-bool KMeansConditionalSpatialMethod::IsClusterNotEmpty(size_t i) { return means[i].dot(-EmptyClusterValue()) >= 0.0f; }
+bool KMeansConditionalSpatialMethod::IsClusterNotEmpty(size_t i) { return means[i].dot(-EmptyClusterValue()) >= -1.0f; }
 
 float KMeansConditionalSpatialMethod::GetVoxelDistance(size_t j, size_t k)
 {
 	size_t x = VoxelsInRange[j]%InputData->sizeX, 
-		   y = InputData->sizeZ == 1 ? (VoxelsInRange[j]-x)/InputData->sizeX : 
-									  ((VoxelsInRange[j]-x)/InputData->sizeX)%InputData->sizeY;
+		   y = ((VoxelsInRange[j]-x)/InputData->sizeX)%InputData->sizeY;
 	return (float)cv::norm(Vec2f((float)x, (float)y), Vec2f(means[k].x, means[k].y));
 }
 
@@ -234,36 +188,33 @@ float KMeansConditionalSpatialMethod::GetVoxelDistance(size_t j, size_t k)
 #pragma region Класс KMeansConditionalDensitySpatialMethod
 
 KMeansConditionalDensitySpatialMethod::KMeansConditionalDensitySpatialMethod(TVoxelsData *DataValue, short LowBorder, short HighBorder) :
-KMeansConditionalMethod <Point3f> (DataValue, LowBorder, HighBorder) {}
+KMeansConditionalMethod <Point3f> (DataValue, LowBorder, HighBorder) 
+{
+	InputData->CalcDensityVariance();
+	InputData->CalcXYVariance();
+}
 
 KMeansConditionalDensitySpatialMethod::KMeansConditionalDensitySpatialMethod(TLayer layer, short LowBorder, short HighBorder) :
-KMeansConditionalMethod <Point3f> (layer, LowBorder, HighBorder) {}
-
-Point3f KMeansConditionalDensitySpatialMethod::GetMean(size_t i)
+KMeansConditionalMethod <Point3f> (layer, LowBorder, HighBorder)
 {
-	Point3f result(0.0f, 0.0f, 0.0f);
-	for (size_t j = 0; j < Clusters[i].size(); ++j)
-	{
-		size_t x = VoxelsInRange[j]%InputData->sizeX,  
-			   y = InputData->sizeZ == 1 ? (VoxelsInRange[j]-x)/InputData->sizeX :
-			                              ((VoxelsInRange[j]-x)/InputData->sizeX)%InputData->sizeY;
-		result += Point3f((float)InputData->Density[VoxelsInRange.at(j)], (float)x, (float)y);
-	}
-
-	return (1.0f/Clusters[i].size())*result;
+	InputData->CalcDensityVariance();
+	InputData->CalcXYVariance();
 }
+
+Point3f KMeansConditionalDensitySpatialMethod::GetMean(size_t i) { return GetMeanDensityCoords_2D(InputData, Clusters[i]); }
 
 Point3f KMeansConditionalDensitySpatialMethod::EmptyClusterValue() { return Point3f(-2.0f, -2.0f, -2.0f); }
 
-bool KMeansConditionalDensitySpatialMethod::IsClusterNotEmpty(size_t i) { return means[i].dot(-EmptyClusterValue()) >= 0.0f; }
+bool KMeansConditionalDensitySpatialMethod::IsClusterNotEmpty(size_t i) { return means[i].dot(-EmptyClusterValue()) >= -1.0f; }
 
 float KMeansConditionalDensitySpatialMethod::GetVoxelDistance(size_t j, size_t k)
 {
 	size_t x = VoxelsInRange[j]%InputData->sizeX, 
-		   y = InputData->sizeZ == 1 ? (VoxelsInRange[j]-x)/InputData->sizeX : 
-									  ((VoxelsInRange[j]-x)/InputData->sizeX)%InputData->sizeY;
-	Vec3f point((float)InputData->Density[VoxelsInRange.at(j)], (float)x, (float)y);
-	return (float)cv::norm(point, Vec3f(means[k].x, means[k].y, means[k].z));
+		   y = ((VoxelsInRange[j]-x)/InputData->sizeX)%InputData->sizeY;
+	cv::Mat point = (cv::Mat_<float>(3, 1) << (float)InputData->Density[VoxelsInRange.at(j)], (float)x, (float)y);
+	cv::Mat center = (cv::Mat_<float>(3, 1) << means[k].x, means[k].y, means[k].z);
+	cv::Mat Icovar = (cv::Mat_<float>(3, 3) << 1.0f/InputData->DensityVariance, 0.0f, 0.0f, 0.0f, 1.0f/InputData->XVariance, 0.0f, 0.0f, 0.0f, 1.0f/InputData->YVariance); 
+	return (float)Mahalanobis(point, center, Icovar);
 }
 
 #pragma endregion
@@ -273,17 +224,11 @@ float KMeansConditionalDensitySpatialMethod::GetVoxelDistance(size_t j, size_t k
 KMeansMaskDensityMethod::KMeansMaskDensityMethod(TVoxelsData *DataValue) : KMeansMaskMethod <float> (DataValue) {}
 KMeansMaskDensityMethod::KMeansMaskDensityMethod(TLayer layer) : KMeansMaskMethod <float> (layer) {}
 
-float KMeansMaskDensityMethod::GetMean(size_t i)
-{
-	float result = 0.0f;
-	for (size_t j = 0; j < Clusters[i].size(); ++j)
-		result += InputData->Density[Clusters[i][VoxelsInMask.at(j)]];
-	return result/Clusters[i].size();
-}
+float KMeansMaskDensityMethod::GetMean(size_t i) { return GetMeanDensity(InputData, Clusters[i]); }
 
 float KMeansMaskDensityMethod::EmptyClusterValue() { return -3.0f; }
 
-bool KMeansMaskDensityMethod::IsClusterNotEmpty(size_t i) { return means[i] >= 0.0f; }
+bool KMeansMaskDensityMethod::IsClusterNotEmpty(size_t i) { return means[i] >= -2.0f; }
 
 float KMeansMaskDensityMethod::GetVoxelDistance(size_t j, size_t k)
 {
@@ -297,29 +242,16 @@ float KMeansMaskDensityMethod::GetVoxelDistance(size_t j, size_t k)
 KMeansMaskSpatialMethod::KMeansMaskSpatialMethod(TVoxelsData *DataValue) : KMeansMaskMethod <Point2f> (DataValue) {}
 KMeansMaskSpatialMethod::KMeansMaskSpatialMethod(TLayer layer) : KMeansMaskMethod <Point2f> (layer) {}
 
-Point2f KMeansMaskSpatialMethod::GetMean(size_t i)
-{
-	Point2f result(0.0f, 0.0f);
-	for (size_t j = 0; j < Clusters[i].size(); ++j)
-	{
-		size_t x = VoxelsInMask[j]%InputData->sizeX,  
-			   y = InputData->sizeZ == 1 ? (VoxelsInMask[j]-x)/InputData->sizeX :
-			                              ((VoxelsInMask[j]-x)/InputData->sizeX)%InputData->sizeY;
-		result += Point2f((float)x, (float)y);
-	}
-
-	return (1.0f/Clusters[i].size())*result;
-}
+Point2f KMeansMaskSpatialMethod::GetMean(size_t i) { return GetMeanCoords_2D(InputData, Clusters[i]); }
 
 Point2f KMeansMaskSpatialMethod::EmptyClusterValue() { return Point2f(-3.0f, -3.0f); }
 
-bool KMeansMaskSpatialMethod::IsClusterNotEmpty(size_t i) {	return means[i].dot(-EmptyClusterValue()) >= 0.0f; }
+bool KMeansMaskSpatialMethod::IsClusterNotEmpty(size_t i) {	return means[i].dot(-EmptyClusterValue()) >= -2.0f; }
 
 float KMeansMaskSpatialMethod::GetVoxelDistance(size_t j, size_t k) 
 {
 	size_t x = VoxelsInMask[j]%InputData->sizeX, 
-		   y = InputData->sizeZ == 1 ? (VoxelsInMask[j]-x)/InputData->sizeX : 
-									  ((VoxelsInMask[j]-x)/InputData->sizeX)%InputData->sizeY;
+		   y = ((VoxelsInMask[j]-x)/InputData->sizeX)%InputData->sizeY;
 	return (float)cv::norm(Vec2f((float)x, (float)y), Vec2f(means[k].x, means[k].y));
 }
 
@@ -327,34 +259,31 @@ float KMeansMaskSpatialMethod::GetVoxelDistance(size_t j, size_t k)
 
 #pragma region Класс KMeansMaskDensitySpatialMethod
 
-KMeansMaskDensitySpatialMethod::KMeansMaskDensitySpatialMethod(TVoxelsData *DataValue) : KMeansMaskMethod <Point3f> (DataValue) {}
-KMeansMaskDensitySpatialMethod::KMeansMaskDensitySpatialMethod(TLayer layer) : KMeansMaskMethod <Point3f> (layer) {}
-
-Point3f KMeansMaskDensitySpatialMethod::GetMean(size_t i)
+KMeansMaskDensitySpatialMethod::KMeansMaskDensitySpatialMethod(TVoxelsData *DataValue) : KMeansMaskMethod <Point3f> (DataValue) 
 {
-	Point3f result(0.0f, 0.0f, 0.0f);
-	for (size_t j = 0; j < Clusters[i].size(); ++j)
-	{
-		size_t x = VoxelsInMask[j]%InputData->sizeX,  
-			   y = InputData->sizeZ == 1 ? (VoxelsInMask[j]-x)/InputData->sizeX :
-			                              ((VoxelsInMask[j]-x)/InputData->sizeX)%InputData->sizeY;
-		result += Point3f((float)InputData->Density[VoxelsInMask.at(j)], (float)x, (float)y);
-	}
-
-	return (1.0f/Clusters[i].size())*result;
+	InputData->CalcDensityVariance();
+	InputData->CalcXYVariance();
 }
+KMeansMaskDensitySpatialMethod::KMeansMaskDensitySpatialMethod(TLayer layer) : KMeansMaskMethod <Point3f> (layer)
+{
+	InputData->CalcDensityVariance();
+	InputData->CalcXYVariance();
+}
+
+Point3f KMeansMaskDensitySpatialMethod::GetMean(size_t i) { return GetMeanDensityCoords_2D(InputData, Clusters[i]); }
 
 Point3f KMeansMaskDensitySpatialMethod::EmptyClusterValue() { return Point3f(-3.0f, -3.0f, -3.0f); }
 
-bool KMeansMaskDensitySpatialMethod::IsClusterNotEmpty(size_t i) { return means[i].dot(-EmptyClusterValue()) >= 0.0f; }
+bool KMeansMaskDensitySpatialMethod::IsClusterNotEmpty(size_t i) { return means[i].dot(-EmptyClusterValue()) >= -2.0f; }
 
 float KMeansMaskDensitySpatialMethod::GetVoxelDistance(size_t j, size_t k)
 {
 	size_t x = VoxelsInMask[j]%InputData->sizeX, 
-		   y = InputData->sizeZ == 1 ? (VoxelsInMask[j]-x)/InputData->sizeX : 
-									  ((VoxelsInMask[j]-x)/InputData->sizeX)%InputData->sizeY;
-	Vec3f point((float)InputData->Density[VoxelsInMask.at(j)], (float)x, (float)y);
-	return (float)cv::norm(point, Vec3f(means[k].x, means[k].y, means[k].z));
+		   y = ((VoxelsInMask[j]-x)/InputData->sizeX)%InputData->sizeY;
+	cv::Mat point = (cv::Mat_<float>(3, 1) << (float)InputData->Density[VoxelsInMask.at(j)], (float)x, (float)y);
+	cv::Mat center = (cv::Mat_<float>(3, 1) << means[k].x, means[k].y, means[k].z);
+	cv::Mat Icovar = (cv::Mat_<float>(3, 3) << 1.0f/InputData->DensityVariance, 0.0f, 0.0f, 0.0f, 1.0f/InputData->XVariance, 0.0f, 0.0f, 0.0f, 1.0f/InputData->YVariance); 
+	return (float)Mahalanobis(point, center, Icovar);
 }
 
 #pragma endregion
@@ -363,6 +292,8 @@ float KMeansMaskDensitySpatialMethod::GetVoxelDistance(size_t j, size_t k)
 
 KMeansOpenCLDensityMethod::KMeansOpenCLDensityMethod(TVoxelsData *DataValue) : KMeansOpenCLMethod <float> (DataValue) {}
 KMeansOpenCLDensityMethod::KMeansOpenCLDensityMethod(TLayer layer) : KMeansOpenCLMethod <float> (layer) {}
+
+float KMeansOpenCLDensityMethod::GetMean(size_t i) { return GetMeanDensity(InputData, Clusters[i]); }
 
 vector <vector <size_t> > KMeansOpenCLDensityMethod::GetClusters(BackgroundWorker^ worker)
 {
@@ -534,6 +465,8 @@ vector <vector <size_t> > KMeansOpenCLDensityMethod::GetClusters(BackgroundWorke
 
 KMeansConditionalOpenCLDensityMethod::KMeansConditionalOpenCLDensityMethod(TVoxelsData *DataValue, short LowBorder, short HighBorder) : KMeansConditionalOpenCLMethod <float>(DataValue, LowBorder, HighBorder) {}
 KMeansConditionalOpenCLDensityMethod::KMeansConditionalOpenCLDensityMethod(TLayer layer, short LowBorder, short HighBorder) : KMeansConditionalOpenCLMethod <float>(layer, LowBorder, HighBorder) {}
+
+float KMeansConditionalOpenCLDensityMethod::GetMean(size_t i) {	return GetMeanDensity(InputData, Clusters[i]); }
 
 vector <vector <size_t> > KMeansConditionalOpenCLDensityMethod::GetClusters(BackgroundWorker^ worker)
 {
@@ -710,4 +643,4 @@ vector <vector <size_t> > KMeansConditionalOpenCLDensityMethod::GetClusters(Back
  return result;
 }
 
-#pragma endregion 
+#pragma endregion
