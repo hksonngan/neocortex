@@ -3,6 +3,77 @@
 using namespace cv;
 using namespace std;
 
+float GetMeanDensity(TVoxelsData* Data, vector <size_t> Segment)
+{
+	float result = 0.0f;
+	vector <size_t>::iterator iter = Segment.begin();
+	vector <size_t>::iterator end = Segment.end();
+	for (; iter != end; ++iter)	result += Data->Density[*iter];
+	return result/Segment.size();
+}
+
+Point2f GetMeanCoords_2D(TVoxelsData* Data, vector <size_t> Segment)
+{
+	Point2f result(0.0f, 0.0f);
+	vector <size_t>::iterator iter = Segment.begin();
+	vector <size_t>::iterator end = Segment.end();
+	for (; iter != end; ++iter) 
+	{
+		size_t x = *iter%Data->sizeX,  
+			   y = ((*iter-x)/Data->sizeX)%Data->sizeY;
+		result += Point2f((float)x, (float)y);
+	}
+		
+	return (1.0f/Segment.size())*result;
+}
+
+Point3f GetMeanCoords_3D(TVoxelsData* Data, vector <size_t> Segment)
+{
+	Point3f result(0.0f, 0.0f, 0.0f);
+	vector <size_t>::iterator iter = Segment.begin();
+	vector <size_t>::iterator end = Segment.end();
+	for (; iter != end; ++iter)
+	{
+		size_t x = *iter%Data->sizeX,
+			   y = ((*iter-x)/Data->sizeX)%Data->sizeY,
+			   z = (*iter-Data->sizeX*y)/(Data->sizeX*Data->sizeY); 
+		result += Point3f((float)x, (float)y, (float)z);
+	}
+
+	return (1.0f/Segment.size())*result;
+}
+
+Point3f GetMeanDensityCoords_2D(TVoxelsData* Data, vector <size_t> Segment)
+{
+	Point3f result(0.0f, 0.0f, 0.0f);
+	vector <size_t>::iterator iter = Segment.begin();
+	vector <size_t>::iterator end = Segment.end();
+	for (; iter != end; ++iter)
+	{
+		size_t x = *iter%Data->sizeX,  
+			   y = ((*iter-x)/Data->sizeX)%Data->sizeY;
+		result += Point3f((float)Data->Density[*iter], (float)x, (float)y);
+	}
+
+	return (1.0f/Segment.size())*result;
+}
+
+Vec4f GetMeanDensityCoords_3D(TVoxelsData* Data, vector <size_t> Segment)
+{
+	Vec4f result(0.0f, 0.0f, 0.0f, 0.0f);
+	vector <size_t>::iterator iter = Segment.begin();
+	vector <size_t>::iterator end = Segment.end();
+	for (; iter != end; ++iter)
+	{
+		size_t x = *iter%Data->sizeX,  
+			   y = ((*iter-x)/Data->sizeX)%Data->sizeY,
+			   z = (*iter-x-Data->sizeX*y)/(Data->sizeX*Data->sizeY);
+		result += Vec4f((float)Data->Density[*iter], (float)x, (float)y, (float)z);
+	}
+
+	return (1.0f/Segment.size())*result;
+}
+
 Point_<short> MinMaxDensityOfSegment_2D(TVoxelsData* Data, size_t LayerIndex, int SegmentIndex)
 {
  short result_min = Data->MaxDensity, result_max = Data->MinDensity;

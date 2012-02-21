@@ -518,7 +518,7 @@ class KMeansOpenCLDensityMethod : public KMeansOpenCLMethod <float>
 public:
 	KMeansOpenCLDensityMethod(TVoxelsData* DataValue);
 	KMeansOpenCLDensityMethod(TLayer layer);
-	KMeansOpenCLDensityMethod();
+	float GetMean(size_t i);
 	std::vector <std::vector <size_t> > GetClusters(BackgroundWorker^ worker);
 };
 
@@ -527,7 +527,6 @@ class KMeansOpenCLSpatialMethod : public KMeansOpenCLMethod <cv::Point2f>
 public:
 	KMeansOpenCLSpatialMethod(TVoxelsData* DataValue);
 	KMeansOpenCLSpatialMethod(TLayer layer);
-	KMeansOpenCLSpatialMethod();
 	std::vector <std::vector <size_t> > GetClusters(BackgroundWorker^ worker);
 };
 
@@ -536,7 +535,6 @@ class KMeansOpenCLDensitySpatialMethod : public KMeansOpenCLMethod <cv::Point3f>
 public:
 	KMeansOpenCLDensitySpatialMethod(TVoxelsData* DataValue);
 	KMeansOpenCLDensitySpatialMethod(TLayer layer);
-	KMeansOpenCLDensitySpatialMethod();
 	std::vector <std::vector <size_t> > GetClusters(BackgroundWorker^ worker);
 };
 
@@ -577,7 +575,7 @@ class KMeansConditionalOpenCLDensityMethod : public KMeansConditionalOpenCLMetho
 public:
 	KMeansConditionalOpenCLDensityMethod(TVoxelsData* DataValue, short LowBorder, short HighBorder);
 	KMeansConditionalOpenCLDensityMethod(TLayer layer, short LowBorder, short HighBorder);
-	KMeansConditionalOpenCLDensityMethod();
+	float GetMean(size_t i);
 	std::vector <std::vector <size_t> > GetClusters(BackgroundWorker^ worker);
 };
 
@@ -586,7 +584,6 @@ class KMeansConditionalOpenCLSpatialMethod : public KMeansConditionalOpenCLMetho
 public:
 	KMeansConditionalOpenCLSpatialMethod(TVoxelsData* DataValue, short LowBorder, short HighBorder);
 	KMeansConditionalOpenCLSpatialMethod(TLayer layer, short LowBorder, short HighBorder);
-	KMeansConditionalOpenCLSpatialMethod();
 	std::vector <std::vector <size_t> > GetClusters(BackgroundWorker^ worker);
 };
 
@@ -595,7 +592,6 @@ class KMeansConditionalOpenCLDensitySpatialMethod : public KMeansConditionalOpen
 public:
 	KMeansConditionalOpenCLDensitySpatialMethod(TVoxelsData* DataValue, short LowBorder, short HighBorder);
 	KMeansConditionalOpenCLDensitySpatialMethod(TLayer layer, short LowBorder, short HighBorder);
-	KMeansConditionalOpenCLDensitySpatialMethod();
 	std::vector <std::vector <size_t> > GetClusters(BackgroundWorker^ worker);
 };
 
@@ -618,3 +614,4 @@ class KMeansMaskOpenCLDensitySpatialMethod : public KMeansMaskOpenCLMethod <cv::
 {
 
 };
+

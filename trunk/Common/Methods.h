@@ -1,6 +1,14 @@
+#pragma once
+
 #include "Structures.h"
 
 System::String^ GetStringOfColor(TColor Color);																			// получить строковое представление цвета
+
+float GetMeanDensity(TVoxelsData* Data, std::vector <size_t> Segment);
+cv::Point2f GetMeanCoords_2D(TVoxelsData* Data, std::vector <size_t> Segment);
+cv::Point3f GetMeanCoords_3D(TVoxelsData* Data, std::vector <size_t> Segment);
+cv::Point3f GetMeanDensityCoords_2D(TVoxelsData* Data, std::vector <size_t> Segment);
+cv::Vec4f GetMeanDensityCoords_3D(TVoxelsData* Data, std::vector <size_t> Segment);
 
 cv::Point_<short> MinMaxDensityOfSegment_2D(TVoxelsData* Data, size_t LayerIndex, int SegmentIndex);					// минимальное и максимальное значения плотности 2D-сегмента
 cv::Point_<short> MinMaxDensityOfSegment_3D(TVoxelsData* Data, size_t StartLayerIndex, int SegmentIndex);				// минимальное и максимальное значения плотности 3D-сегмента
