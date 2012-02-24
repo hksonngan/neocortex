@@ -105,9 +105,10 @@ class ballPivot
 public:
 	ballPivot();
 	ballPivot(char *file);																																								// чтение исходных данных из bin-файла
-	ballPivot(TVoxelsData *InputData, int MeshStep_X, int MeshStep_Y, int MeshStep_Z, GLfloat MinVoxelDensity, GLfloat MaxVoxelDensity);													// из сохранённого набора данных
-	ballPivot(TVoxelsData *InputData, int SegmentIndex, int MeshStep_X, int MeshStep_Y, int MeshStep_Z, GLfloat MinVoxelDensity, GLfloat MaxVoxelDensity);	// из 3D-сегмента	
-	ballPivot(TVoxelsData *InputData, vector <size_t> path, int MeshStep_X, int MeshStep_Y, int MeshStep_Z, GLfloat MinVoxelDensity, GLfloat MaxVoxelDensity);	// из цепочки 2D-сегментов
+	ballPivot(TVoxelsData *InputData, int MeshStep_X, int MeshStep_Y, int MeshStep_Z, GLfloat MinVoxelDensity, GLfloat MaxVoxelDensity);												// из сохранённого набора данных
+	ballPivot(TVoxelsData *InputData, vector <cv::Point2i> *SnakePoints, int MeshStep_X = 1, int MeshStep_Y = 1, int MeshStep_Z = 1);
+	ballPivot(TVoxelsData *InputData, int SegmentIndex, int MeshStep_X, int MeshStep_Y, int MeshStep_Z, GLfloat MinVoxelDensity, GLfloat MaxVoxelDensity);								// из 3D-сегмента	
+	ballPivot(TVoxelsData *InputData, vector <size_t> path, int MeshStep_X, int MeshStep_Y, int MeshStep_Z, GLfloat MinVoxelDensity, GLfloat MaxVoxelDensity);							// из цепочки 2D-сегментов
 	~ballPivot();
 	void buildMesh();
 	void renderMesh();
@@ -981,6 +982,77 @@ ballPivot::ballPivot(TVoxelsData* InputData, int MeshStep_X, int MeshStep_Y, int
 	 }
 }
 
+ballPivot::ballPivot(TVoxelsData *InputData, vector<cv::Point2i> *SnakePoints, int MeshStep_X, int MeshStep_Y, int MeshStep_Z)
+{
+	MIN_DENSITY = (GLfloat)InputData->MinDensity;
+	MAX_DENSITY = (GLfloat)InputData->MaxDensity;
+	STEP_X = MeshStep_X; STEP_Y = MeshStep_Y; STEP_Z = MeshStep_Z;
+	razm_x=InputData->scaleX; razm_y=InputData->scaleY; razm_z=InputData->scaleZ;
+	scale.x=razm_x; scale.y=razm_y; scale.z=razm_z;
+	COUNT_OF_POINTS_X = COUNT_OF_POINTS_Y = COUNT_OF_POINTS_Z = 0;
+	COUNT_OF_ALL_POINTS = 0;
+	COUNT_OF_ALL_SHOWED_POINTS=0;
+
+	bool *IS_USED_X, *IS_USED_Y, *IS_USED_Z;
+
+	IS_USED_X = new bool [InputData->sizeX]; for (size_t i = 0; i < InputData->sizeX; ++i) IS_USED_X[i] = false;
+	IS_USED_Y = new bool [InputData->sizeY]; for (size_t j = 0; j < InputData->sizeY; ++j) IS_USED_Y[j] = false;
+	IS_USED_Z = new bool [InputData->sizeZ]; for (size_t k = 0; k < InputData->sizeZ; ++k) IS_USED_Z[k] = false;
+
+	vector <size_t> Index_X, Index_Y, Index_Z;
+	Index_X.clear(); Index_Y.clear(); Index_Z.clear();
+
+	for (size_t z = 0; z < InputData->sizeZ; ++z)
+	{
+		vector <cv::Point2i>::iterator iter = SnakePoints[z].begin();
+		vector <cv::Point2i>::iterator _end = SnakePoints[z].end();
+
+		for (; iter != _end; ++iter)
+		{
+			int i = (*iter).x, j = (*iter).y;
+			if (!IS_USED_X[i]) {COUNT_OF_POINTS_X++; Index_X.push_back(i); IS_USED_X[i] = true;}
+			if (!IS_USED_Y[j]) {COUNT_OF_POINTS_Y++; Index_Y.push_back(j); IS_USED_Y[j] = true;}
+		}
+
+		if (SnakePoints[z].size()) {COUNT_OF_POINTS_Z++; Index_Z.push_back(z); IS_USED_Z[z] = true;}
+
+		COUNT_OF_ALL_SHOWED_POINTS += SnakePoints[z].size();
+	}
+
+	COUNT_OF_ALL_POINTS = COUNT_OF_ALL_SHOWED_POINTS;
+
+	COUNT_OF_POINTS_X /= STEP_X; COUNT_OF_POINTS_Y /= STEP_Y; COUNT_OF_POINTS_Z /= STEP_Z;
+	data_size.x=STEP_X*COUNT_OF_POINTS_X; data_size.y=STEP_Y*COUNT_OF_POINTS_Y; data_size.z=STEP_Z*COUNT_OF_POINTS_Z;
+	radius=8;
+	camera_pos=c_point(0,0,-10);
+	angle=5.0f*M_PI/180;
+	TRIANGLES_COUNT=0;
+
+	all_points = new c_point [COUNT_OF_ALL_SHOWED_POINTS];
+	c_edge::all_points=all_points;
+
+	int num=0;
+
+	for (size_t k = 0; k < InputData->sizeZ; ++k)
+	{
+		vector <cv::Point2i>::iterator iter = SnakePoints[k].begin();
+		vector <cv::Point2i>::iterator _end = SnakePoints[k].end();
+
+		for (; iter != _end; ++iter)
+		{
+			int i = (*iter).x, j = (*iter).y;
+			
+					all_points[num].setX(i);
+					all_points[num].setY(j);
+					all_points[num].setZ(k);
+					all_points[num].setVal((float)InputData->GetDensity(i, j, k));
+					num++;
+		}
+	}
+
+				delete [] IS_USED_X; delete [] IS_USED_Y; delete [] IS_USED_Z;
+}
+
 ballPivot::ballPivot(TVoxelsData *InputData, vector <size_t> path, int MeshStep_X, int MeshStep_Y, int MeshStep_Z, GLfloat MinVoxelDensity, GLfloat MaxVoxelDensity)
 {
  MIN_DENSITY = MinVoxelDensity;
@@ -1028,7 +1100,8 @@ ballPivot::ballPivot(TVoxelsData *InputData, vector <size_t> path, int MeshStep_
  for (int i = 0; i < COUNT_OF_POINTS_X; ++i)
  for (int j = 0; j < COUNT_OF_POINTS_Y; ++j)
  for (int k = 0; k < COUNT_OF_POINTS_Z; ++k)
- if ((InputData->Density[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]>=MIN_DENSITY) &&
+ if ((InputData->VoxelSegments[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)].SegmentIndex_2D == path.at(STEP_Z*k)) &&
+	 (InputData->Density[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]>=MIN_DENSITY) &&
 	 (InputData->Density[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]<=MAX_DENSITY))
  COUNT_OF_ALL_SHOWED_POINTS++; 
 
@@ -1040,7 +1113,8 @@ ballPivot::ballPivot(TVoxelsData *InputData, vector <size_t> path, int MeshStep_
  for (int i = 0; i < COUNT_OF_POINTS_X; ++i)
  for (int j = 0; j < COUNT_OF_POINTS_Y; ++j)
  for (int k = 0; k < COUNT_OF_POINTS_Z; ++k)
- if ((InputData->Density[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]>=MIN_DENSITY) &&
+ if ((InputData->VoxelSegments[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)].SegmentIndex_2D == path.at(STEP_Z*k)) &&
+	 (InputData->Density[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]>=MIN_DENSITY) &&
 	 (InputData->Density[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]<=MAX_DENSITY))
  {
   all_points[num].setX(i);
@@ -1094,7 +1168,8 @@ ballPivot::ballPivot(TVoxelsData *InputData, int SegmentIndex, int MeshStep_X, i
   for (int i = 0; i < COUNT_OF_POINTS_X; ++i)
 	 for (int j = 0; j < COUNT_OF_POINTS_Y; ++j)
 		 for (int k = 0; k < COUNT_OF_POINTS_Z; ++k)
-			 if ((InputData->Density[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]>=MIN_DENSITY) &&
+			 if ((InputData->VoxelSegments[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)].SegmentIndex_3D == SegmentIndex) &&
+				 (InputData->Density[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]>=MIN_DENSITY) &&
 				 (InputData->Density[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]<=MAX_DENSITY))
 					 COUNT_OF_ALL_SHOWED_POINTS++; 
 
@@ -1106,7 +1181,8 @@ ballPivot::ballPivot(TVoxelsData *InputData, int SegmentIndex, int MeshStep_X, i
  for (int i = 0; i < COUNT_OF_POINTS_X; ++i)
  for (int j = 0; j < COUNT_OF_POINTS_Y; ++j)
  for (int k = 0; k < COUNT_OF_POINTS_Z; ++k)
- if ((InputData->Density[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]>=MIN_DENSITY) &&
+ if ((InputData->VoxelSegments[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)].SegmentIndex_3D == SegmentIndex) &&
+	 (InputData->Density[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]>=MIN_DENSITY) &&
 	 (InputData->Density[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]<=MAX_DENSITY))
 	 {
 	  all_points[num].setX(i);
