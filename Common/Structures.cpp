@@ -1,4 +1,5 @@
 #include "Structures.h"
+#include "opencv2/imgproc/imgproc.hpp"
 #include <fstream>
 
 using namespace cv;
@@ -174,6 +175,45 @@ void TVoxelsData::CalcXYVariance()
 	XVariance = sqr_x - mean_x*mean_x, YVariance = sqr_y - mean_y*mean_y;
 }
 
+void TVoxelsData::FindConnectedRegions(size_t LayerIndex, int SegmentIndex)
+{
+	int Label = -1;
+
+	for (size_t j = 0; j < sizeY; ++j)
+		for (size_t i = 0; i < sizeX; ++i)
+			if (VoxelSegments[ReducedIndex(i, j, LayerIndex)].SegmentIndex_2D == SegmentIndex)
+			{
+				if (i && (VoxelSegments[ReducedIndex(i-1, j, LayerIndex)].ComponentIndex_2D >= 0))
+				{
+					VoxelSegments[ReducedIndex(i, j, LayerIndex)].ComponentIndex_2D = 
+						VoxelSegments[ReducedIndex(i-1, j, LayerIndex)].ComponentIndex_2D;
+				}
+
+				else
+					if (j && (VoxelSegments[ReducedIndex(i, j-1, LayerIndex)].ComponentIndex_2D >= 0))
+				{
+					VoxelSegments[ReducedIndex(i, j, LayerIndex)].ComponentIndex_2D = 
+						VoxelSegments[ReducedIndex(i, j-1, LayerIndex)].ComponentIndex_2D;
+				}
+
+					else 
+						if (i && j)
+				{
+					if (VoxelSegments[ReducedIndex(i-1, j-1, LayerIndex)].ComponentIndex_2D >= 0)
+					VoxelSegments[ReducedIndex(i, j, LayerIndex)].ComponentIndex_2D = 
+						VoxelSegments[ReducedIndex(i-1, j-1, LayerIndex)].ComponentIndex_2D;
+					else
+						if (VoxelSegments[ReducedIndex(i-1, j+1, LayerIndex)].ComponentIndex_2D >= 0)
+					VoxelSegments[ReducedIndex(i, j, LayerIndex)].ComponentIndex_2D = 
+						VoxelSegments[ReducedIndex(i-1, j+1, LayerIndex)].ComponentIndex_2D;
+				}
+						else
+				{
+					VoxelSegments[ReducedIndex(i, j, LayerIndex)].ComponentIndex_2D = (++Label);
+				}
+			}
+}
+
 #pragma endregion
 
 #pragma region TSegment methods
@@ -199,6 +239,22 @@ bool TSegment::IsAdjacentWith(const TSegment &segment)
 {
 	return ((MinDensity >= segment.MinDensity)&&(MinDensity <= segment.MaxDensity))||
 		((MaxDensity >= segment.MinDensity)&&(MaxDensity <= segment.MaxDensity));
+}
+
+#pragma endregion
+
+#pragma region TSegmentComponent methods
+
+TSegmentComponent::TSegmentComponent(TVoxelsData *Data, size_t LayerIndex, int SegmentIndex, int ComponentIndex)
+{
+	cv::Mat mat(Data->sizeY, Data->sizeX, CV_8UC1);
+	for (size_t i = 0; i < Data->sizeY; ++i)
+		for (size_t j = 0; j < Data->sizeX; ++j)
+		{
+			const TVoxelSegments voxel_segments = Data->VoxelSegments[Data->ReducedIndex(j, i, LayerIndex)];
+			mat.at<uchar>(i, j) = 255*((voxel_segments.SegmentIndex_2D == SegmentIndex)&&(voxel_segments.ComponentIndex_2D == ComponentIndex));
+		}
+	cv::findContours(mat, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE);
 }
 
 #pragma endregion

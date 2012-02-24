@@ -34,9 +34,10 @@ struct TLayer  // слой данных (двумерное изображение)
 struct TVoxelSegments					
 {
  int SegmentIndex_2D, SegmentIndex_3D;  // индексы сегментов, которым принадлежит воксел
+ int ComponentIndex_2D;					// индекс компоненты связности, входящей в сегмент, которому принадлежит воксел
 
  // Конструктор по умолчанию
- TVoxelSegments(): SegmentIndex_2D(-1), SegmentIndex_3D(-1) {}
+ TVoxelSegments(): SegmentIndex_2D(-1), SegmentIndex_3D(-1), ComponentIndex_2D(-1) {}
 };
 
 struct TColor 
@@ -104,6 +105,9 @@ class TVoxelsData
 		// Методы, вычисляющие дисперсию плотности и координат вокселов
 		void CalcDensityVariance();
 		void CalcXYVariance();
+
+		// Поиск связных областей
+		void FindConnectedRegions(size_t LayerIndex, int SegmentIndex);
 };
 
 struct TSegment					// сегмент из вокселов
@@ -133,11 +137,15 @@ struct TSegment					// сегмент из вокселов
  bool IsAdjacentWith(const TSegment &segment);
 };
 
-struct TSegmentGraph
+struct TSegmentComponent	// компонента связности сегментов
 {
 private:
-	std::vector <std::vector <size_t> > segment_contour; // контуры сегментов
+	std::vector <std::vector <cv::Point_<size_t> > > contours;	// контуры
+	std::vector <cv::Vec4i> hierarchy;							// иерархия
 public:
-	TSegmentGraph(std::vector <size_t> segment);
+	TSegmentComponent(TVoxelsData* Data, size_t LayerIndex, int SegmentIndex, int ComponentIndex);
 };
+
+typedef std::vector <TSegmentComponent> TSegmentGraph;		// графовая модель представления сегмента
+
 
