@@ -407,6 +407,11 @@ private: System::ComponentModel::IContainer^  components;
 			this->ToolStripMenuItem_ToBinFile = (gcnew System::Windows::Forms::ToolStripMenuItem());
 			this->ToolStripMenuItem_ToFolder = (gcnew System::Windows::Forms::ToolStripMenuItem());
 			this->ToolStripMenuItem_Exit = (gcnew System::Windows::Forms::ToolStripMenuItem());
+			this->yToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
+			this->âèçóàëèçàöèÿToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
+			this->ëîêàëèçàöèÿToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
+			this->ñåãìåíòàöèÿToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
+			this->ðåêîíñòðóêöèÿToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
 			this->RenderingPanel = (gcnew System::Windows::Forms::Panel());
 			this->Label_ClustersCount = (gcnew System::Windows::Forms::Label());
 			this->TrackBar_ClustersCount = (gcnew System::Windows::Forms::TrackBar());
@@ -532,11 +537,6 @@ private: System::ComponentModel::IContainer^  components;
 			this->CheckBox_ReconstructionInputData = (gcnew System::Windows::Forms::CheckBox());
 			this->ButtonReconstructionData = (gcnew System::Windows::Forms::Button());
 			this->ButtonReconstructionSegments_3D = (gcnew System::Windows::Forms::Button());
-			this->yToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
-			this->âèçóàëèçàöèÿToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
-			this->ëîêàëèçàöèÿToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
-			this->ñåãìåíòàöèÿToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
-			this->ðåêîíñòðóêöèÿToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
 			this->MenuStrip->SuspendLayout();
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^  >(this->TrackBar_ClustersCount))->BeginInit();
 			this->GroupBoxSegmentation->SuspendLayout();
@@ -647,6 +647,38 @@ private: System::ComponentModel::IContainer^  components;
 			this->ToolStripMenuItem_Exit->Size = System::Drawing::Size(266, 22);
 			this->ToolStripMenuItem_Exit->Text = L"Âûõîä";
 			this->ToolStripMenuItem_Exit->Click += gcnew System::EventHandler(this, &MainForm::ToolStripMenuItem_Exit_Click);
+			// 
+			// yToolStripMenuItem
+			// 
+			this->yToolStripMenuItem->DropDownItems->AddRange(gcnew cli::array< System::Windows::Forms::ToolStripItem^  >(4) {this->âèçóàëèçàöèÿToolStripMenuItem, 
+				this->ëîêàëèçàöèÿToolStripMenuItem, this->ñåãìåíòàöèÿToolStripMenuItem, this->ðåêîíñòðóêöèÿToolStripMenuItem});
+			this->yToolStripMenuItem->Name = L"yToolStripMenuItem";
+			this->yToolStripMenuItem->Size = System::Drawing::Size(92, 22);
+			this->yToolStripMenuItem->Text = L"Íàñòðîéêè";
+			// 
+			// âèçóàëèçàöèÿToolStripMenuItem
+			// 
+			this->âèçóàëèçàöèÿToolStripMenuItem->Name = L"âèçóàëèçàöèÿToolStripMenuItem";
+			this->âèçóàëèçàöèÿToolStripMenuItem->Size = System::Drawing::Size(208, 22);
+			this->âèçóàëèçàöèÿToolStripMenuItem->Text = L"Âèçóàëèçàöèÿ...";
+			// 
+			// ëîêàëèçàöèÿToolStripMenuItem
+			// 
+			this->ëîêàëèçàöèÿToolStripMenuItem->Name = L"ëîêàëèçàöèÿToolStripMenuItem";
+			this->ëîêàëèçàöèÿToolStripMenuItem->Size = System::Drawing::Size(208, 22);
+			this->ëîêàëèçàöèÿToolStripMenuItem->Text = L"Ëîêàëèçàöèÿ...";
+			// 
+			// ñåãìåíòàöèÿToolStripMenuItem
+			// 
+			this->ñåãìåíòàöèÿToolStripMenuItem->Name = L"ñåãìåíòàöèÿToolStripMenuItem";
+			this->ñåãìåíòàöèÿToolStripMenuItem->Size = System::Drawing::Size(208, 22);
+			this->ñåãìåíòàöèÿToolStripMenuItem->Text = L"Ñåãìåíòàöèÿ...";
+			// 
+			// ðåêîíñòðóêöèÿToolStripMenuItem
+			// 
+			this->ðåêîíñòðóêöèÿToolStripMenuItem->Name = L"ðåêîíñòðóêöèÿToolStripMenuItem";
+			this->ðåêîíñòðóêöèÿToolStripMenuItem->Size = System::Drawing::Size(208, 22);
+			this->ðåêîíñòðóêöèÿToolStripMenuItem->Text = L"Ðåêîíñòðóêöèÿ...";
 			// 
 			// RenderingPanel
 			// 
@@ -1550,7 +1582,7 @@ private: System::ComponentModel::IContainer^  components;
 				| System::Windows::Forms::AnchorStyles::Right));
 			this->TrackBar_Layers_Localization->Location = System::Drawing::Point(159, 628);
 			this->TrackBar_Layers_Localization->Name = L"TrackBar_Layers_Localization";
-			this->TrackBar_Layers_Localization->Size = System::Drawing::Size(356, 53);
+			this->TrackBar_Layers_Localization->Size = System::Drawing::Size(356, 56);
 			this->TrackBar_Layers_Localization->TabIndex = 15;
 			this->TrackBar_Layers_Localization->ValueChanged += gcnew System::EventHandler(this, &MainForm::TrackBar_Layers_Localization_ValueChanged);
 			// 
@@ -1815,6 +1847,7 @@ private: System::ComponentModel::IContainer^  components;
 			this->CheckBox_ReconstructionFeature->TabIndex = 18;
 			this->CheckBox_ReconstructionFeature->Text = L"Îòîáðàæàòü ðåçóëüòàòû ðåêîíñòðóêöèè îñîáåííîñòè";
 			this->CheckBox_ReconstructionFeature->UseVisualStyleBackColor = true;
+			this->CheckBox_ReconstructionFeature->CheckedChanged += gcnew System::EventHandler(this, &MainForm::CheckBox_ReconstructionFeature_CheckedChanged);
 			// 
 			// ButtonReconstructionFeature
 			// 
@@ -1825,6 +1858,7 @@ private: System::ComponentModel::IContainer^  components;
 			this->ButtonReconstructionFeature->TabIndex = 17;
 			this->ButtonReconstructionFeature->Text = L"Ðåêîíñòðóêöèÿ îñîáåííîñòè";
 			this->ButtonReconstructionFeature->UseVisualStyleBackColor = true;
+			this->ButtonReconstructionFeature->Click += gcnew System::EventHandler(this, &MainForm::ButtonReconstructionFeature_Click);
 			// 
 			// CheckBox_Reconstruction2DSegments
 			// 
@@ -1984,38 +2018,6 @@ private: System::ComponentModel::IContainer^  components;
 			this->ButtonReconstructionSegments_3D->Text = L"Ðåêîíñòðóêöèÿ 3D-ñåãìåíòîâ";
 			this->ButtonReconstructionSegments_3D->UseVisualStyleBackColor = true;
 			this->ButtonReconstructionSegments_3D->Click += gcnew System::EventHandler(this, &MainForm::ButtonReconstructionSegments_3D_Click);
-			// 
-			// yToolStripMenuItem
-			// 
-			this->yToolStripMenuItem->DropDownItems->AddRange(gcnew cli::array< System::Windows::Forms::ToolStripItem^  >(4) {this->âèçóàëèçàöèÿToolStripMenuItem, 
-				this->ëîêàëèçàöèÿToolStripMenuItem, this->ñåãìåíòàöèÿToolStripMenuItem, this->ðåêîíñòðóêöèÿToolStripMenuItem});
-			this->yToolStripMenuItem->Name = L"yToolStripMenuItem";
-			this->yToolStripMenuItem->Size = System::Drawing::Size(92, 22);
-			this->yToolStripMenuItem->Text = L"Íàñòðîéêè";
-			// 
-			// âèçóàëèçàöèÿToolStripMenuItem
-			// 
-			this->âèçóàëèçàöèÿToolStripMenuItem->Name = L"âèçóàëèçàöèÿToolStripMenuItem";
-			this->âèçóàëèçàöèÿToolStripMenuItem->Size = System::Drawing::Size(208, 22);
-			this->âèçóàëèçàöèÿToolStripMenuItem->Text = L"Âèçóàëèçàöèÿ...";
-			// 
-			// ëîêàëèçàöèÿToolStripMenuItem
-			// 
-			this->ëîêàëèçàöèÿToolStripMenuItem->Name = L"ëîêàëèçàöèÿToolStripMenuItem";
-			this->ëîêàëèçàöèÿToolStripMenuItem->Size = System::Drawing::Size(208, 22);
-			this->ëîêàëèçàöèÿToolStripMenuItem->Text = L"Ëîêàëèçàöèÿ...";
-			// 
-			// ñåãìåíòàöèÿToolStripMenuItem
-			// 
-			this->ñåãìåíòàöèÿToolStripMenuItem->Name = L"ñåãìåíòàöèÿToolStripMenuItem";
-			this->ñåãìåíòàöèÿToolStripMenuItem->Size = System::Drawing::Size(208, 22);
-			this->ñåãìåíòàöèÿToolStripMenuItem->Text = L"Ñåãìåíòàöèÿ...";
-			// 
-			// ðåêîíñòðóêöèÿToolStripMenuItem
-			// 
-			this->ðåêîíñòðóêöèÿToolStripMenuItem->Name = L"ðåêîíñòðóêöèÿToolStripMenuItem";
-			this->ðåêîíñòðóêöèÿToolStripMenuItem->Size = System::Drawing::Size(208, 22);
-			this->ðåêîíñòðóêöèÿToolStripMenuItem->Text = L"Ðåêîíñòðóêöèÿ...";
 			// 
 			// MainForm
 			// 
@@ -2333,7 +2335,8 @@ private: System::ComponentModel::IContainer^  components;
 
 			  if (InputData && InputData->Density) 
 			  { 
-				  if (this->CheckBox_ReconstructionInputData->Checked && qw)
+				  if (((this->CheckBox_ReconstructionInputData->Checked)||
+					   (this->CheckBox_ReconstructionFeature->Checked)) && qw)
 				  {
 					int N=10;
 					int RazmX_By_N=qw->razm_x*N;
@@ -2895,6 +2898,7 @@ private: System::ComponentModel::IContainer^  components;
 			   this->TrackBar_MaxVoxelsDensity->Value = InputData->MaxDensity;
 
 			   this->ButtonReconstructionData->Enabled = true;
+			   this->ButtonReconstructionFeature->Enabled = false;
 			   this->ButtonReconstructionSegments_2D->Enabled = false;
 			   this->ButtonReconstructionSegments_3D->Enabled = false;
 
@@ -4005,6 +4009,7 @@ private: System::Void ToolStripMenuItem_DownloadFolder_Click(System::Object^ sen
 		   this->TrackBar_MaxVoxelsDensity->Value = InputData->MaxDensity;
 
 		   this->ButtonReconstructionData->Enabled = true;
+		   this->ButtonReconstructionFeature->Enabled = false;
 		   this->ButtonReconstructionSegments_2D->Enabled = false;
 		   this->ButtonReconstructionSegments_3D->Enabled = false;
 
@@ -4647,6 +4652,8 @@ private: System::Void ButtonLocalize_Click(System::Object^  sender, System::Even
 					GenerateTextures();
 					//çàïóñêàåì ðèñîâàëêó
 					RenderTimer->Start();
+
+					this->ButtonReconstructionFeature->Enabled = true;
 				}
 			}
 				
@@ -4813,6 +4820,25 @@ private: System::Void ButtonReconstructionSegments_3D_Click(System::Object^  sen
 		   clock_t finish = clock();
 		   this->Label_Status->Text = L"3D-ñåãìåíòû ðåêîíñòðóèðîâàíû. Îáùåå âðåìÿ ðåêîíñòðóêöèè: " + ((finish-start)/(1.0f*CLOCKS_PER_SEC)).ToString() + L" c.";
 		  }
+		 }
+private: System::Void ButtonReconstructionFeature_Click(System::Object^  sender, System::EventArgs^  e) 
+		 {
+			 delete qw;
+			 qw = new ballPivot(InputData, SnakePoints);
+			 clock_t start = clock();
+			 qw->buildMesh();
+			 clock_t finish = clock();
+    		 this->Label_Status->Text = L"Äàííûå ðåêîíñòðóèðîâàíû. Âðåìÿ 3d-ðåêîíñòðóêöèè: "+((float)(finish-start)/CLOCKS_PER_SEC).ToString()+" ñ.";
+		 }
+private: System::Void CheckBox_ReconstructionFeature_CheckedChanged(System::Object^  sender, System::EventArgs^  e) 
+		 {
+			this->CheckBox_Gradients->Checked = !this->CheckBox_ReconstructionFeature->Checked&&this->CheckBox_Gradients->Checked;
+			this->CheckBox_Localization->Checked = !this->CheckBox_ReconstructionFeature->Checked&&this->CheckBox_Localization->Checked;
+			this->CheckBoxClusters->Checked = !this->CheckBox_ReconstructionFeature->Checked&&this->CheckBoxClusters->Checked;
+			this->CheckBox_ReconstructionInputData->Checked = !this->CheckBox_ReconstructionFeature->Checked&&this->CheckBox_ReconstructionInputData->Checked;
+			this->CheckBox_Reconstruction2DSegments->Checked = !this->CheckBox_ReconstructionFeature->Checked&&this->CheckBox_Reconstruction2DSegments->Checked;
+			this->CheckBox_Reconstruction3DSegments->Checked = !this->CheckBox_ReconstructionFeature->Checked&&this->CheckBox_Reconstruction3DSegments->Checked;
+			if (!this->CheckBox_ReconstructionInputData->Checked) distance_z = 600.0f;
 		 }
 };
 }
