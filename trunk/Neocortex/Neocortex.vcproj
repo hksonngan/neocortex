@@ -214,6 +214,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Segmentation.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\stdafx.cpp"
 				>
 				<FileConfiguration
@@ -431,6 +435,11 @@
 			</File>
 			<File
 				RelativePath=".\resource.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Segmentation.h"
+				FileType="3"
 				>
 			</File>
 			<File
