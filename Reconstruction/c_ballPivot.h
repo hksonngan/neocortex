@@ -1019,11 +1019,14 @@ ballPivot::ballPivot(TVoxelsData *InputData, vector<cv::Point2i> *SnakePoints, i
 		COUNT_OF_ALL_SHOWED_POINTS += SnakePoints[z].size();
 	}
 
+	COUNT_OF_POINTS_X = COUNT_OF_POINTS_Y = COUNT_OF_ALL_SHOWED_POINTS;
+	COUNT_OF_POINTS_Z = InputData->sizeZ;
+
 	COUNT_OF_ALL_POINTS = COUNT_OF_ALL_SHOWED_POINTS;
 
 	COUNT_OF_POINTS_X /= STEP_X; COUNT_OF_POINTS_Y /= STEP_Y; COUNT_OF_POINTS_Z /= STEP_Z;
 	data_size.x=STEP_X*COUNT_OF_POINTS_X; data_size.y=STEP_Y*COUNT_OF_POINTS_Y; data_size.z=STEP_Z*COUNT_OF_POINTS_Z;
-	radius=8;
+	radius=20;
 	camera_pos=c_point(0,0,-10);
 	angle=5.0f*M_PI/180;
 	TRIANGLES_COUNT=0;

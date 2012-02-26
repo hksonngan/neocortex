@@ -441,6 +441,10 @@
 				RelativePath=".\Segmentation.h"
 				FileType="3"
 				>
+				<File
+					RelativePath=".\Segmentation.resx"
+					>
+				</File>
 			</File>
 			<File
 				RelativePath=".\stdafx.h"

@@ -10,6 +10,7 @@
 #include "shader_snake.h"
 #include "K-means.h"
 #include "c_ballPivot.h"
+#include "Segmentation.h"
 
 #include <Windows.h>
 #include <stdio.h>
@@ -56,6 +57,8 @@ namespace Neocortex
 		
 	public ref class MainForm : public System::Windows::Forms::Form
 	{
+	public:
+		static SegmentationProperties^ SegmentationForm = gcnew SegmentationProperties();
 	public:
 		MainForm(void)
 		{
@@ -169,8 +172,7 @@ namespace Neocortex
 		short low_density, high_density;	  // пороги на значения плотности вокселов (для сегментации)
 		size_t StartLayerIndex_3D;			  // индекс начального слоя в 3D-режиме рендеринга и сегментации
 		bool CellValueChanging;				  // признак изменения значения ячейки таблицы после редактирования
-
-
+	
 		/// <summary> Общие компоненты на форме /// </summary>
 		
 		private: System::Windows::Forms::Panel^ RenderingPanel;					// главное окно рендеринга
@@ -346,9 +348,9 @@ private: System::Windows::Forms::TrackBar^  TrackBar_Layers_Visualization;
 		private: System::Windows::Forms::TrackBar^ TrackBar_MinVoxelsDensity;
 
 		private: System::Windows::Forms::Button^ ButtonReconstructionData;
-private: System::Windows::Forms::Button^  ButtonReconstructionSegments_3D;
+		private: System::Windows::Forms::Button^  ButtonReconstructionSegments_3D;
 
-private: System::Windows::Forms::CheckBox^  CheckBox_ReconstructionInputData;
+		private: System::Windows::Forms::CheckBox^  CheckBox_ReconstructionInputData;
 
 
 
@@ -379,13 +381,6 @@ private: System::Windows::Forms::ToolStripMenuItem^  визуализацияToolStripMenuIt
 private: System::Windows::Forms::ToolStripMenuItem^  локализацияToolStripMenuItem;
 private: System::Windows::Forms::ToolStripMenuItem^  сегментацияToolStripMenuItem;
 private: System::Windows::Forms::ToolStripMenuItem^  реконструкцияToolStripMenuItem;
-
-
-
-
-
-
-
 
 private: System::ComponentModel::IContainer^  components;
 
@@ -673,6 +668,7 @@ private: System::ComponentModel::IContainer^  components;
 			this->сегментацияToolStripMenuItem->Name = L"сегментацияToolStripMenuItem";
 			this->сегментацияToolStripMenuItem->Size = System::Drawing::Size(208, 22);
 			this->сегментацияToolStripMenuItem->Text = L"Сегментация...";
+			this->сегментацияToolStripMenuItem->Click += gcnew System::EventHandler(this, &MainForm::сегментацияToolStripMenuItem_Click);
 			// 
 			// реконструкцияToolStripMenuItem
 			// 
@@ -2722,8 +2718,8 @@ private: System::ComponentModel::IContainer^  components;
 				 StartLayerIndex_3D = 0;
 				 
 				 CellValueChanging = false;
-				 				 
-                 InputData = new TVoxelsData();
+
+				 InputData = new TVoxelsData();
 				 				 
 				 Segments_2D = NULL; Segments_3D = NULL; 
 
@@ -4839,6 +4835,10 @@ private: System::Void CheckBox_ReconstructionFeature_CheckedChanged(System::Obje
 			this->CheckBox_Reconstruction2DSegments->Checked = !this->CheckBox_ReconstructionFeature->Checked&&this->CheckBox_Reconstruction2DSegments->Checked;
 			this->CheckBox_Reconstruction3DSegments->Checked = !this->CheckBox_ReconstructionFeature->Checked&&this->CheckBox_Reconstruction3DSegments->Checked;
 			if (!this->CheckBox_ReconstructionInputData->Checked) distance_z = 600.0f;
+		 }
+private: System::Void сегментацияToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) 
+		 {
+			 SegmentationForm->Show();			 
 		 }
 };
 }
