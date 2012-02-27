@@ -133,6 +133,8 @@ namespace Neocortex
 		vector <TSegment>* Segments_2D;				// вектор сегментов для каждого слоя данных
 		vector <TSegment>* Segments_3D;				// вектор сегментов для нескольких слоёв как единого целого
 		
+		vector <TPath> *paths;						// особенности, образуемые сопряжёнными сегментами на соседних слоях
+
 		TSnakeParameters* SnakeParameters;			// параметры метода активного контура
 		vector <Point2i> *SnakePoints;				// точки активного контура для всех слоев
 
@@ -866,6 +868,7 @@ private: System::ComponentModel::IContainer^  components;
 			this->CheckBox_ColorsExport->Text = L"Экспортировать атрибуты сегментов текущего слоя";
 			this->CheckBox_ColorsExport->UseVisualStyleBackColor = true;
 			this->CheckBox_ColorsExport->Click += gcnew System::EventHandler(this, &MainForm::CheckBox_ColorsExport_Click);
+			this->CheckBox_ColorsExport->CheckedChanged += gcnew System::EventHandler(this, &MainForm::CheckBox_ColorsExport_CheckedChanged);
 			// 
 			// Label_IterationsCount
 			// 
@@ -2146,14 +2149,14 @@ private: System::ComponentModel::IContainer^  components;
 			 {
 			  vector <TPath> result; result.clear();
 			  vector <bool> *IsSegmentUsed = new vector <bool> [InputData->sizeZ];
-			  
+			  	  
 			  for (size_t i = 0; i < InputData->sizeZ; ++i)
 			  for (size_t j = 0; j < Segments_2D[i].size(); ++j)
 			  IsSegmentUsed[i].push_back(false);
-			  
+
 			  for (size_t i = 0; i < Segments_2D[LayerIndex].size(); ++i)
 			  {
-			   TPath path;
+			   TPath path; path.root = i;
 			   
 			   DynamicProcess(LayerIndex, i, FORWARD, path, IsSegmentUsed);
 			   DynamicProcess(LayerIndex, i, BACKWARD, path, IsSegmentUsed);
@@ -2164,8 +2167,34 @@ private: System::ComponentModel::IContainer^  components;
 			  return result;
 			 }
 
+	private: vector <TPath>* FindOptimalMatches()
+			 {
+				vector <TPath>* result = new vector <TPath> [InputData->sizeZ];
+				vector <bool> *IsSegmentUsed = new vector <bool> [InputData->sizeZ];
 
-	private: vector <vector <size_t> > FindOptimalMatches()
+				for (size_t i = 0; i < InputData->sizeZ; ++i)
+				{
+					result[i].clear();
+					for (size_t j = 0; j < Segments_2D[i].size(); ++j)
+					IsSegmentUsed[i].push_back(false);
+				}
+
+				for (size_t z = 0; z < InputData->sizeZ; ++z)
+					for (size_t i = 0; i < Segments_2D[z].size(); ++i)
+						if (!IsSegmentUsed[z].at(i))
+						{
+							TPath path; path.root = i;
+
+							DynamicProcess(z, i, FORWARD, path, IsSegmentUsed);
+							DynamicProcess(z, i, BACKWARD, path, IsSegmentUsed);
+
+							result[z].push_back(path);
+						}
+
+				return result;
+			 }
+
+	private: vector <vector <size_t> > FindOptimalMatches(int)
 			 {
 			  vector <vector <size_t> > result;
 			  vector <bool> *IsSegmentUsed = new vector <bool> [InputData->sizeZ];
@@ -3347,6 +3376,8 @@ private: System::Void Button_Clusterization_Click(System::Object^  sender, Syste
 		   
 		   Label_Status->Text = L"Данные сегментированы. Среднее время сегментации 1 слоя: "+(SumTime/InputData->sizeZ).ToString()+L" с.";
 
+		   delete [] paths; paths = FindOptimalMatches();
+
 		   size_t z = this->TrackBar_Layers_Visualization->Value;
 
 		   CellValueChanging = false;
@@ -3571,14 +3602,24 @@ private: System::Void DataGridView_Clusters_CellClick(System::Object^  sender, S
 
 				if (CheckBox_ColorsExport->Checked)
 				{
-				 for (size_t layer_index = 0; layer_index < InputData->sizeZ; ++layer_index)
-				 if ((layer_index != z)&&(e->RowIndex < (int)Segments_2D[layer_index].size()))
-				 {
-				  Segments_2D[layer_index].at(e->RowIndex).tmpColor = tmpColor;
-				 }
+					for (size_t i = 0; i < paths[z].size(); ++i) if (paths[z].at(i).root == e->RowIndex)
+					{
 
-				 if ((z==0)&&(VolumeSegment_2D->size()!=0)) VolumeSegment_2D->at(e->RowIndex).color = 
-					 Segments_2D[z].at(e->RowIndex).tmpColor;
+				   for (size_t j = 1; j <= paths[z].at(i).backward.size(); ++j)
+				   {
+					   Segments_2D[z-j].at(paths[z].at(i).backward.at(j-1)).tmpColor = Segments_2D[z].at(e->RowIndex).tmpColor;
+				   }
+
+				   for (size_t k = 1; k <= paths[z].at(i).forward.size(); ++k)
+				   {
+					   Segments_2D[z+k].at(paths[z].at(i).forward.at(k-1)).tmpColor = Segments_2D[z].at(e->RowIndex).tmpColor;
+				   }
+				   break;
+					}
+				   
+				   if ((z==0)&&(VolumeSegment_2D->size()!=0)) VolumeSegment_2D->at(e->RowIndex).color = 
+					 Segments_2D[z].at(e->RowIndex).tmpColor; 
+				  
 				}
 
 				
@@ -3617,12 +3658,25 @@ private: System::Void DataGridView_Clusters_CellValueChanged(System::Object^  se
 			  
 			  if (CheckBox_ColorsExport->Checked)
 			  {
-			   for (size_t layer_index = 0; layer_index < InputData->sizeZ; ++layer_index)
+			   /*for (size_t layer_index = 0; layer_index < InputData->sizeZ; ++layer_index)
 			   if ((layer_index!=z)&&(index < (int)Segments_2D[layer_index].size()))
 			   {
 				Segments_2D[layer_index].at(index).tmpVisible = Segments_2D[z].at(index).Visible;
+			   }*/
+				for (size_t i = 0; i < paths[z].size(); ++i) if (paths[z].at(i).root == index)
+				{
+			   for (size_t j = 1; j <= paths[z].at(i).backward.size(); ++j)
+			   {
+				Segments_2D[z-j].at(paths[z].at(i).backward.at(j-1)).tmpVisible = Segments_2D[z].at(index).Visible;
+			   }
+			   for (size_t k = 1; k <= paths[z].at(i).forward.size(); ++k)
+			   {
+				Segments_2D[z+k].at(paths[z].at(i).forward.at(k-1)).tmpVisible = Segments_2D[z].at(index).Visible;
 			   }
 
+			   break;
+				}
+						   
 			   if ((z==0)&&(VolumeSegment_2D->size()!=0)) VolumeSegment_2D->at(e->RowIndex).visible = 
 				   Segments_2D[z].at(e->RowIndex).tmpVisible;
 			  }
@@ -3680,10 +3734,17 @@ private: System::Void DataGridView_Clusters_CellEndEdit(System::Object^  sender,
 		   
 			  if (CheckBox_ColorsExport->Checked)
 			  {
-			   for (size_t layer_index = 0; layer_index < InputData->sizeZ; ++layer_index)
-			   if ((layer_index != z)&&(index < (int)Segments_2D[layer_index].size()))
+			   for (size_t i = 0; i < paths[z].size(); ++i) if (paths[z].at(i).root == index)
 			   {
-				Segments_2D[layer_index].at(index).tmpColor.A = (float)tmp_value/255;
+				for (size_t j = 1; j <= paths[z].at(i).backward.size(); ++j)
+				{
+					Segments_2D[z-j].at(paths[z].at(i).backward.at(j-1)).tmpColor.A = (float)tmp_value/255;
+				}
+				for (size_t k = 1; k <= paths[z].at(i).forward.size(); ++k)
+				{
+					Segments_2D[z+k].at(paths[z].at(i).forward.at(k-1)).tmpColor.A = (float)tmp_value/255;
+				}
+				break;
 			   }
 
 			   if ((z==0)&&(VolumeSegment_2D->size()!=0)) VolumeSegment_2D->at(index).color = 
@@ -3741,31 +3802,19 @@ private: System::Void CheckBox_ColorsExport_CheckedChanged(System::Object^  send
 				   Segments_2D[z].at(i).tmpVisible = Segments_2D[z].at(i).Visible;
 				  }
 
-				  vector <TPath> paths = FindOptimalMatches(z);
-
-				  for (size_t i = 0; i < Segments_2D[z].size(); ++i)
+				  for (size_t i = 0; i < paths[z].size(); ++i)
 				  {
-				   for (size_t j = 1; j <= paths.at(i).backward.size(); ++j)
+				   for (size_t j = 1; j <= paths[z].at(i).backward.size(); ++j)
 				   {
-				    Segments_2D[z-j].at(paths.at(i).backward.at(j-1)).tmpColor = Segments_2D[z].at(i).Color;
-					Segments_2D[z-j].at(paths.at(i).backward.at(j-1)).tmpVisible = Segments_2D[z].at(i).Visible;
+				    Segments_2D[z-j].at(paths[z].at(i).backward.at(j-1)).tmpColor = Segments_2D[z].at(paths[z].at(i).root).Color;
+					Segments_2D[z-j].at(paths[z].at(i).backward.at(j-1)).tmpVisible = Segments_2D[z].at(paths[z].at(i).root).Visible;
 				   }
-				   for (size_t k = 1; k <= paths.at(i).forward.size(); ++k)
+				   for (size_t k = 1; k <= paths[z].at(i).forward.size(); ++k)
 				   {
-				    Segments_2D[z+k].at(paths.at(i).forward.at(k-1)).tmpColor = Segments_2D[z].at(i).Color;
-					Segments_2D[z+k].at(paths.at(i).forward.at(k-1)).tmpVisible = Segments_2D[z].at(i).Visible;
+				    Segments_2D[z+k].at(paths[z].at(i).forward.at(k-1)).tmpColor = Segments_2D[z].at(paths[z].at(i).root).Color;
+					Segments_2D[z+k].at(paths[z].at(i).forward.at(k-1)).tmpVisible = Segments_2D[z].at(paths[z].at(i).root).Visible;
 				   }
 				  }
-
-				  /* for (size_t layer_index = 0; layer_index < InputData->sizeZ; ++layer_index)
-				  if (layer_index!=z)
-				  {
-				   for (size_t i = 0; i < min(Segments_2D[layer_index].size(), Segments_2D[z].size()); ++i)
-				   {
-				    Segments_2D[layer_index].at(i).tmpColor = Segments_2D[z].at(i).Color;
-					Segments_2D[layer_index].at(i).tmpVisible = Segments_2D[z].at(i).Visible;
-				   }
-  				  } */
 
 				  break;
 				 }
@@ -3807,31 +3856,19 @@ private: System::Void CheckBox_ColorsExport_Click(System::Object^  sender, Syste
 				   Segments_2D[z].at(i).tmpVisible = Segments_2D[z].at(i).Visible;
 				  }
 
-				  vector <TPath> paths = FindOptimalMatches(z);
-
-				  for (size_t i = 0; i < Segments_2D[z].size(); ++i)
+				  for (size_t i = 0; i < paths[z].size(); ++i)
 				  {
-				   for (size_t j = 1; j <= paths.at(i).backward.size(); ++j)
+				   for (size_t j = 1; j <= paths[z].at(i).backward.size(); ++j)
 				   {
-				    Segments_2D[z-j].at(paths.at(i).backward.at(j-1)).tmpColor = Segments_2D[z].at(i).Color;
-					Segments_2D[z-j].at(paths.at(i).backward.at(j-1)).tmpVisible = Segments_2D[z].at(i).Visible;
+				    Segments_2D[z-j].at(paths[z].at(i).backward.at(j-1)).tmpColor = Segments_2D[z].at(paths[z].at(i).root).Color;
+					Segments_2D[z-j].at(paths[z].at(i).backward.at(j-1)).tmpVisible = Segments_2D[z].at(paths[z].at(i).root).Visible;
 				   }
-				   for (size_t k = 1; k <= paths.at(i).forward.size(); ++k)
+				   for (size_t k = 1; k <= paths[z].at(i).forward.size(); ++k)
 				   {
-				    Segments_2D[z+k].at(paths.at(i).forward.at(k-1)).tmpColor = Segments_2D[z].at(i).Color;
-					Segments_2D[z+k].at(paths.at(i).forward.at(k-1)).tmpVisible = Segments_2D[z].at(i).Visible;
+				    Segments_2D[z+k].at(paths[z].at(i).forward.at(k-1)).tmpColor = Segments_2D[z].at(paths[z].at(i).root).Color;
+					Segments_2D[z+k].at(paths[z].at(i).forward.at(k-1)).tmpVisible = Segments_2D[z].at(paths[z].at(i).root).Visible;
 				   }
 				  }
-
-				  /* for (size_t layer_index = 0; layer_index < InputData->sizeZ; ++layer_index)
-				  if (layer_index!=z)
-				  {
-				   for (size_t i = 0; i < min(Segments_2D[layer_index].size(), Segments_2D[z].size()); ++i)
-				   {
-				    Segments_2D[layer_index].at(i).tmpColor = Segments_2D[z].at(i).Color;
-					Segments_2D[layer_index].at(i).tmpVisible = Segments_2D[z].at(i).Visible;
-				   }
-  				  } */
 
 				  break;
 				 }
@@ -4786,14 +4823,16 @@ private: System::Void ButtonReconstructionSegments_2D_Click(System::Object^  sen
 		  {
 		   VolumeSegment_2D->clear();
 		   clock_t start = clock();
-		   vector <vector <size_t> > paths = FindOptimalMatches();
-		   for (size_t i = 0; i < paths.size(); ++i)
+		   // vector <vector <size_t> > paths = FindOptimalMatches(0);
+		   int count = -1;
+		   for (size_t z = 0; z < InputData->sizeZ; ++z)
+		   for (size_t i = 0; i < paths[z].size(); ++i) if (paths[z].at(i).forward.size()+paths[z].at(i).backward.size()>0)
 		   {
-		    VolumeSegment_2D->push_back(TVolumeSegment());
-		    VolumeSegment_2D->at(i).object = ballPivot(InputData, paths.at(i), MeshStep_X, MeshStep_Y, MeshStep_Z, MinVoxelDensity, MaxVoxelDensity);
-		    VolumeSegment_2D->at(i).object.buildMesh();
-			VolumeSegment_2D->at(i).color = Segments_2D[0].at(i).Color;
-		    VolumeSegment_2D->at(i).visible = Segments_2D[0].at(i).Visible;
+		    VolumeSegment_2D->push_back(TVolumeSegment()); count++;
+		    VolumeSegment_2D->at(count).object = ballPivot(InputData, paths, z, i, MeshStep_X, MeshStep_Y, MeshStep_Z, MinVoxelDensity, MaxVoxelDensity);
+		    VolumeSegment_2D->at(count).object.buildMesh();
+			VolumeSegment_2D->at(count).color = Segments_2D[z].at(paths[z].at(i).root).Color;
+		    VolumeSegment_2D->at(count).visible = Segments_2D[0].at(paths[z].at(i).root).Visible;
 		   }
 		   clock_t finish = clock();
 		   this->Label_Status->Text = L"2D-сегменты реконструированы. Общее время реконструкции: " + ((finish-start)/(1.0f*CLOCKS_PER_SEC)).ToString() + L" c.";

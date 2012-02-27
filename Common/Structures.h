@@ -51,11 +51,12 @@ struct TColor
 
 struct TPath						// путь (цепочка) из сегментов
 {
+ size_t root;						// корень цепочки
  std::vector <size_t> forward;		// передний фрагмент цепочки
  std::vector <size_t> backward;		// задний фрагмент цепочки
 
  // Конструктор по умолчанию
- TPath() { forward.clear(); backward.clear(); }
+ TPath():root(0) { forward.clear(); backward.clear(); }
 };
 
 class TVoxelsData 
@@ -114,6 +115,8 @@ struct TSegment					// сегмент из вокселов
 {
  short MinDensity;				// минимальное значение плотности 
  short MaxDensity;				// максимальное значение плотности
+
+ short* Histogram;				// гистограмма значений плотности
  
  TColor Color;					// цвет сегмента
  bool Visible;					// атрибут видимости вокселов, входящих в сегмент
@@ -128,7 +131,7 @@ struct TSegment					// сегмент из вокселов
  float Volume;					// объём сегмента (с учётом размеров воксела вдоль осей)
 
  // Конструктор сегмента по умолчанию
- TSegment(): MinDensity(0), MaxDensity(0), 
+ TSegment(): MinDensity(0), MaxDensity(0), Histogram(0), 
 	         Color(TColor(0.0f, 0.0f, 0.0f, 0.0f)), Visible(false), 
 			 tmpColor(TColor(0.0f, 0.0f, 0.0f, 0.0f)), tmpVisible(false) {}
 

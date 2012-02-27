@@ -108,7 +108,7 @@ public:
 	ballPivot(TVoxelsData *InputData, int MeshStep_X, int MeshStep_Y, int MeshStep_Z, GLfloat MinVoxelDensity, GLfloat MaxVoxelDensity);												// из сохранённого набора данных
 	ballPivot(TVoxelsData *InputData, vector <cv::Point2i> *SnakePoints, int MeshStep_X = 1, int MeshStep_Y = 1, int MeshStep_Z = 1);
 	ballPivot(TVoxelsData *InputData, int SegmentIndex, int MeshStep_X, int MeshStep_Y, int MeshStep_Z, GLfloat MinVoxelDensity, GLfloat MaxVoxelDensity);								// из 3D-сегмента	
-	ballPivot(TVoxelsData *InputData, vector <size_t> path, int MeshStep_X, int MeshStep_Y, int MeshStep_Z, GLfloat MinVoxelDensity, GLfloat MaxVoxelDensity);							// из цепочки 2D-сегментов
+	ballPivot(TVoxelsData *InputData, vector <TPath> *paths, size_t LayerIndex, size_t PathIndex, int MeshStep_X, int MeshStep_Y, int MeshStep_Z, GLfloat MinVoxelDensity, GLfloat MaxVoxelDensity);							// из цепочки 2D-сегментов
 	~ballPivot();
 	void buildMesh();
 	void renderMesh();
@@ -1056,7 +1056,7 @@ ballPivot::ballPivot(TVoxelsData *InputData, vector<cv::Point2i> *SnakePoints, i
 				delete [] IS_USED_X; delete [] IS_USED_Y; delete [] IS_USED_Z;
 }
 
-ballPivot::ballPivot(TVoxelsData *InputData, vector <size_t> path, int MeshStep_X, int MeshStep_Y, int MeshStep_Z, GLfloat MinVoxelDensity, GLfloat MaxVoxelDensity)
+ballPivot::ballPivot(TVoxelsData *InputData, vector <TPath> *paths, size_t LayerIndex, size_t PathIndex, int MeshStep_X, int MeshStep_Y, int MeshStep_Z, GLfloat MinVoxelDensity, GLfloat MaxVoxelDensity)
 {
  MIN_DENSITY = MinVoxelDensity;
  MAX_DENSITY = MaxVoxelDensity;
@@ -1076,21 +1076,53 @@ ballPivot::ballPivot(TVoxelsData *InputData, vector <size_t> path, int MeshStep_
  vector <size_t> Index_X, Index_Y, Index_Z;
  Index_X.clear(); Index_Y.clear(); Index_Z.clear();
 
- vector <size_t>::iterator iter = path.begin();
- vector <size_t>::iterator _end = path.end();
-
- int LayerIndex = 0;
-
- for (; iter != _end; ++iter, ++LayerIndex)
+ size_t z = LayerIndex-1; 
+ 
+ if (z > -1)
  {
-  for (size_t i = 0; i < InputData->sizeX; ++i)
-  for (size_t j = 0; j < InputData->sizeY; ++j)
-  if (InputData->VoxelSegments[InputData->ReducedIndex(i, j, LayerIndex)].SegmentIndex_2D == *iter)
-  {
-   if (!IS_USED_X[i]) {COUNT_OF_POINTS_X++; Index_X.push_back(i); IS_USED_X[i] = true;}
-   if (!IS_USED_Y[j]) {COUNT_OF_POINTS_Y++; Index_Y.push_back(j); IS_USED_Y[j] = true;}
-   if (!IS_USED_Z[LayerIndex]) {COUNT_OF_POINTS_Z++; Index_Z.push_back(LayerIndex); IS_USED_Z[LayerIndex] = true;}
-  }
+	 vector <size_t>::iterator iter = paths[LayerIndex].at(PathIndex).backward.begin();
+	 vector <size_t>::iterator _end = paths[LayerIndex].at(PathIndex).backward.end();
+	 for (; iter != _end; ++iter, --z)
+	 {
+		 for (size_t i = 0; i < InputData->sizeX; ++i)
+			 for (size_t j = 0; j < InputData->sizeY; ++j)
+				 if (InputData->VoxelSegments[InputData->ReducedIndex(i, j, z)].SegmentIndex_2D == *iter)
+				 {
+					 if (!IS_USED_X[i]) {COUNT_OF_POINTS_X++; Index_X.push_back(i); IS_USED_X[i] = true;}
+					 if (!IS_USED_Y[j]) {COUNT_OF_POINTS_Y++; Index_Y.push_back(j); IS_USED_Y[j] = true;}
+					 if (!IS_USED_Z[z]) {COUNT_OF_POINTS_Z++; Index_Z.push_back(z); IS_USED_Z[z] = true;}
+				 }
+	 }
+
+ }
+
+ for (size_t i = 0; i < InputData->sizeX; ++i)
+ for (size_t j = 0; j < InputData->sizeY; ++j)
+ if (InputData->VoxelSegments[InputData->ReducedIndex(i, j, LayerIndex)].SegmentIndex_2D == paths[LayerIndex].at(PathIndex).root)
+ {
+  if (!IS_USED_X[i]) {COUNT_OF_POINTS_X++; Index_X.push_back(i); IS_USED_X[i] = true;}
+  if (!IS_USED_Y[j]) {COUNT_OF_POINTS_Y++; Index_Y.push_back(j); IS_USED_Y[j] = true;}
+  if (!IS_USED_Z[LayerIndex]) {COUNT_OF_POINTS_Z++; Index_Z.push_back(LayerIndex); IS_USED_Z[LayerIndex] = true;}
+ }
+
+ z = LayerIndex+1; 
+
+ if (z < InputData->sizeZ)
+ {
+	 vector <size_t>::iterator iter = paths[LayerIndex].at(PathIndex).forward.begin();
+	 vector <size_t>::iterator _end = paths[LayerIndex].at(PathIndex).forward.end();
+	 for (; iter != _end; ++iter, ++z)
+	 {
+		 for (size_t i = 0; i < InputData->sizeX; ++i)
+			 for (size_t j = 0; j < InputData->sizeY; ++j)
+				 if (InputData->VoxelSegments[InputData->ReducedIndex(i, j, z)].SegmentIndex_2D == *iter)
+				 {
+					 if (!IS_USED_X[i]) {COUNT_OF_POINTS_X++; Index_X.push_back(i); IS_USED_X[i] = true;}
+					 if (!IS_USED_Y[j]) {COUNT_OF_POINTS_Y++; Index_Y.push_back(j); IS_USED_Y[j] = true;}
+					 if (!IS_USED_Z[z]) {COUNT_OF_POINTS_Z++; Index_Z.push_back(z); IS_USED_Z[z] = true;}
+				 }
+	 }
+	
  }
 
  COUNT_OF_POINTS_X /= STEP_X; COUNT_OF_POINTS_Y /= STEP_Y; COUNT_OF_POINTS_Z /= STEP_Z;
@@ -1100,23 +1132,79 @@ ballPivot::ballPivot(TVoxelsData *InputData, vector <size_t> path, int MeshStep_
  angle=5.0f*M_PI/180;
  TRIANGLES_COUNT=0;
 
+ // for (int k = 1; k <= paths[LayerIndex].at(PathIndex).backward.size(); ++k)
  for (int i = 0; i < COUNT_OF_POINTS_X; ++i)
  for (int j = 0; j < COUNT_OF_POINTS_Y; ++j)
  for (int k = 0; k < COUNT_OF_POINTS_Z; ++k)
- if ((InputData->VoxelSegments[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)].SegmentIndex_2D == path.at(STEP_Z*k)) &&
+ {
+	 if ((Index_Z.at(STEP_Z*k)>=LayerIndex-paths[LayerIndex].at(PathIndex).backward.size())&&
+		 (Index_Z.at(STEP_Z*k)<LayerIndex))
+ if ((InputData->VoxelSegments[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)].SegmentIndex_2D == paths[LayerIndex].at(PathIndex).backward.at(LayerIndex-Index_Z.at(STEP_Z*k)-1)) &&
 	 (InputData->Density[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]>=MIN_DENSITY) &&
 	 (InputData->Density[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]<=MAX_DENSITY))
  COUNT_OF_ALL_SHOWED_POINTS++; 
+ }
+
+ for (int i = 0; i < COUNT_OF_POINTS_X; ++i)
+ for (int j = 0; j < COUNT_OF_POINTS_Y; ++j)
+ if ((InputData->VoxelSegments[LayerIndex*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)].SegmentIndex_2D == paths[LayerIndex].at(PathIndex).root) &&
+	 (InputData->Density[LayerIndex*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]>=MIN_DENSITY) &&
+	 (InputData->Density[LayerIndex*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]<=MAX_DENSITY))
+ COUNT_OF_ALL_SHOWED_POINTS++; 
+
+ for (int i = 0; i < COUNT_OF_POINTS_X; ++i)
+ for (int j = 0; j < COUNT_OF_POINTS_Y; ++j)
+ for (int k = 0; k < COUNT_OF_POINTS_Z; ++k)
+ {
+	 if ((Index_Z.at(STEP_Z*k)>LayerIndex)&&
+		 (Index_Z.at(STEP_Z*k)<=LayerIndex+paths[LayerIndex].at(PathIndex).forward.size()))
+ if ((InputData->VoxelSegments[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)].SegmentIndex_2D == paths[LayerIndex].at(PathIndex).forward.at(Index_Z.at(STEP_Z*k)-LayerIndex-1)) &&
+	 (InputData->Density[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]>=MIN_DENSITY) &&
+	 (InputData->Density[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]<=MAX_DENSITY))
+ COUNT_OF_ALL_SHOWED_POINTS++; 
+ }
 
  // delete [] all_points;
  all_points = new c_point [COUNT_OF_ALL_SHOWED_POINTS];
  c_edge::all_points=all_points;
 
  int num=0;
+ // for (int k = 1; k <= paths[LayerIndex].at(PathIndex).backward.size(); ++k)
  for (int i = 0; i < COUNT_OF_POINTS_X; ++i)
  for (int j = 0; j < COUNT_OF_POINTS_Y; ++j)
  for (int k = 0; k < COUNT_OF_POINTS_Z; ++k)
- if ((InputData->VoxelSegments[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)].SegmentIndex_2D == path.at(STEP_Z*k)) &&
+ if ((Index_Z.at(STEP_Z*k)>=LayerIndex-paths[LayerIndex].at(PathIndex).backward.size())&&
+		 (Index_Z.at(STEP_Z*k)<LayerIndex))
+ if ((InputData->VoxelSegments[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)].SegmentIndex_2D == paths[LayerIndex].at(PathIndex).backward.at(LayerIndex-Index_Z.at(STEP_Z*k)-1)) &&
+	 (InputData->Density[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]>=MIN_DENSITY) &&
+	 (InputData->Density[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]<=MAX_DENSITY))
+ {
+  all_points[num].setX(i);
+  all_points[num].setY(j);
+  all_points[num].setZ(k);
+  all_points[num].setVal(InputData->Density[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]);
+  num++;
+ }
+
+ for (int i = 0; i < COUNT_OF_POINTS_X; ++i)
+ for (int j = 0; j < COUNT_OF_POINTS_Y; ++j)
+ if ((InputData->VoxelSegments[LayerIndex*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)].SegmentIndex_2D == paths[LayerIndex].at(PathIndex).root) &&
+	 (InputData->Density[LayerIndex*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]>=MIN_DENSITY) &&
+	 (InputData->Density[LayerIndex*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]<=MAX_DENSITY))
+ {
+  all_points[num].setX(i);
+  all_points[num].setY(j);
+  all_points[num].setZ(LayerIndex);
+  all_points[num].setVal(InputData->Density[LayerIndex*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]);
+  num++;
+ }
+
+ for (int i = 0; i < COUNT_OF_POINTS_X; ++i)
+ for (int j = 0; j < COUNT_OF_POINTS_Y; ++j)
+ for (int k = 0; k < COUNT_OF_POINTS_Z; ++k)
+ if ((Index_Z.at(STEP_Z*k)>LayerIndex)&&
+	 (Index_Z.at(STEP_Z*k)<=LayerIndex+paths[LayerIndex].at(PathIndex).forward.size()))
+ if ((InputData->VoxelSegments[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)].SegmentIndex_2D == paths[LayerIndex].at(PathIndex).forward.at(Index_Z.at(STEP_Z*k)-LayerIndex-1)) &&
 	 (InputData->Density[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]>=MIN_DENSITY) &&
 	 (InputData->Density[Index_Z.at(STEP_Z*k)*InputData->sizeX*InputData->sizeY+Index_Y.at(STEP_Y*j)*InputData->sizeX+Index_X.at(STEP_X*i)]<=MAX_DENSITY))
  {
