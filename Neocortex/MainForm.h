@@ -2108,7 +2108,7 @@ private: System::ComponentModel::IContainer^  components;
 			  {
 			   int new_segment_index = -1; double MinCost = System::Double::MaxValue;
 
-			   for (size_t j = 0; j < Segments_2D[layer_index+1].size(); ++j)
+			   for (size_t j = 0; j < Segments_2D[layer_index+index_shift].size(); ++j)
 
 			   if (!IsSegmentUsed[layer_index+index_shift].at(j) &&
 				   Segments_2D[layer_index].at(segment_index).IsAdjacentWith(Segments_2D[layer_index+index_shift].at(j)) &&
@@ -3597,33 +3597,64 @@ private: System::Void DataGridView_Clusters_CellClick(System::Object^  sender, S
 			    Segments_2D[z].at(e->RowIndex).Color = tmpColor;
 				Segments_2D[z].at(e->RowIndex).tmpColor = Segments_2D[z].at(e->RowIndex).Color;
 				
-				if ((z==0)&&(VolumeSegment_2D->size()!=0)) VolumeSegment_2D->at(e->RowIndex).color = 
-					Segments_2D[z].at(e->RowIndex).Color;
+				if (VolumeSegment_2D->size()!=0)
+				{
+					size_t layer_root = z, segment_root = e->RowIndex;
+
+					for (size_t LayerIndex = 0; LayerIndex < InputData->sizeZ; ++LayerIndex)
+					for (size_t i = 0; i < paths[LayerIndex].size(); ++i)
+					{
+						for (size_t j = 1; j <= paths[LayerIndex].at(i).backward.size(); ++j)
+							if ((j == abs((int)(z-LayerIndex)))&&
+								(paths[LayerIndex].at(i).backward.at(j-1) == e->RowIndex))
+							{
+								layer_root = LayerIndex;
+								segment_root = paths[LayerIndex].at(i).root;
+								break; break; break;
+							}
+							if (layer_root == z)
+						for (size_t j = 1; j <= paths[LayerIndex].at(i).forward.size(); ++j)
+						{
+							if ((j == abs((int)(LayerIndex-z)))&&
+								(paths[LayerIndex].at(i).forward.at(j-1) == e->RowIndex))
+							{
+								layer_root = LayerIndex;
+								segment_root = paths[LayerIndex].at(i).root;
+								break; break; break;
+							}
+						} else {break; break;}
+
+					}
+
+					for (size_t k = 0; k < VolumeSegment_2D->size(); ++k)
+					if ((VolumeSegment_2D->at(k).LayerRoot == layer_root)&&
+						(VolumeSegment_2D->at(k).SegmentRoot == segment_root))
+
+ 					{
+						VolumeSegment_2D->at(k).color = Segments_2D[z].at(e->RowIndex).Color;
+						break;
+					}
+				}
 
 				if (CheckBox_ColorsExport->Checked)
 				{
 					for (size_t i = 0; i < paths[z].size(); ++i) if (paths[z].at(i).root == e->RowIndex)
 					{
 
-				   for (size_t j = 1; j <= paths[z].at(i).backward.size(); ++j)
-				   {
-					   Segments_2D[z-j].at(paths[z].at(i).backward.at(j-1)).tmpColor = Segments_2D[z].at(e->RowIndex).tmpColor;
-				   }
+					   for (size_t j = 1; j <= paths[z].at(i).backward.size(); ++j)
+					   {
+						   Segments_2D[z-j].at(paths[z].at(i).backward.at(j-1)).tmpColor = Segments_2D[z].at(e->RowIndex).tmpColor;
+					   }
 
-				   for (size_t k = 1; k <= paths[z].at(i).forward.size(); ++k)
-				   {
-					   Segments_2D[z+k].at(paths[z].at(i).forward.at(k-1)).tmpColor = Segments_2D[z].at(e->RowIndex).tmpColor;
-				   }
-				   break;
+					   for (size_t k = 1; k <= paths[z].at(i).forward.size(); ++k)
+					   {
+						   Segments_2D[z+k].at(paths[z].at(i).forward.at(k-1)).tmpColor = Segments_2D[z].at(e->RowIndex).tmpColor;
+					   }
+					   
+					   break;
 					}
-				   
-				   if ((z==0)&&(VolumeSegment_2D->size()!=0)) VolumeSegment_2D->at(e->RowIndex).color = 
-					 Segments_2D[z].at(e->RowIndex).tmpColor; 
-				  
 				}
 
-				
-				
 			   }
 			   
 			   if (this->RadioButton_3D->Checked)
@@ -3653,32 +3684,61 @@ private: System::Void DataGridView_Clusters_CellValueChanged(System::Object^  se
 			  Segments_2D[z].at(index).Visible = (bool)this->DataGridView_Clusters->Rows[index]->Cells[6]->Value;
 			  Segments_2D[z].at(index).tmpVisible = Segments_2D[z].at(index).Visible;
 
-			  if ((z==0)&&(VolumeSegment_2D->size()!=0)) VolumeSegment_2D->at(e->RowIndex).visible = 
-					Segments_2D[z].at(e->RowIndex).Visible;
+			  if (VolumeSegment_2D->size()!=0)
+				{
+					size_t layer_root = z, segment_root = index;
+
+					for (size_t LayerIndex = 0; LayerIndex < InputData->sizeZ; ++LayerIndex)
+					for (size_t i = 0; i < paths[LayerIndex].size(); ++i)
+					{
+						for (size_t j = 1; j <= paths[LayerIndex].at(i).backward.size(); ++j)
+							if ((j == abs((int)(z-LayerIndex)))&&
+								(paths[LayerIndex].at(i).backward.at(j-1) == index))
+							{
+								layer_root = LayerIndex;
+								segment_root = paths[LayerIndex].at(i).root;
+								break; break; break;
+							}
+							if (layer_root == z)
+						for (size_t j = 1; j <= paths[LayerIndex].at(i).forward.size(); ++j)
+						{
+							if ((j == abs((int)(LayerIndex-z)))&&
+								(paths[LayerIndex].at(i).forward.at(j-1) == index))
+							{
+								layer_root = LayerIndex;
+								segment_root = paths[LayerIndex].at(i).root;
+								break; break; break;
+							} 
+						} else {break; break;}
+					}
+
+					for (size_t k = 0; k < VolumeSegment_2D->size(); ++k)
+					if ((VolumeSegment_2D->at(k).LayerRoot == layer_root)&&
+						(VolumeSegment_2D->at(k).SegmentRoot == segment_root))
+
+ 					{
+						VolumeSegment_2D->at(k).visible = Segments_2D[z].at(index).Visible;
+						break;
+					}
+				}
 			  
 			  if (CheckBox_ColorsExport->Checked)
 			  {
-			   /*for (size_t layer_index = 0; layer_index < InputData->sizeZ; ++layer_index)
-			   if ((layer_index!=z)&&(index < (int)Segments_2D[layer_index].size()))
-			   {
-				Segments_2D[layer_index].at(index).tmpVisible = Segments_2D[z].at(index).Visible;
-			   }*/
-				for (size_t i = 0; i < paths[z].size(); ++i) if (paths[z].at(i).root == index)
+			    for (size_t i = 0; i < paths[z].size(); ++i) if (paths[z].at(i).root == index)
 				{
-			   for (size_t j = 1; j <= paths[z].at(i).backward.size(); ++j)
-			   {
-				Segments_2D[z-j].at(paths[z].at(i).backward.at(j-1)).tmpVisible = Segments_2D[z].at(index).Visible;
-			   }
-			   for (size_t k = 1; k <= paths[z].at(i).forward.size(); ++k)
-			   {
-				Segments_2D[z+k].at(paths[z].at(i).forward.at(k-1)).tmpVisible = Segments_2D[z].at(index).Visible;
-			   }
-
-			   break;
+				   for (size_t j = 1; j <= paths[z].at(i).backward.size(); ++j)
+				   {
+					Segments_2D[z-j].at(paths[z].at(i).backward.at(j-1)).tmpVisible = Segments_2D[z].at(index).Visible;
+				   }
+				   for (size_t k = 1; k <= paths[z].at(i).forward.size(); ++k)
+				   {
+					Segments_2D[z+k].at(paths[z].at(i).forward.at(k-1)).tmpVisible = Segments_2D[z].at(index).Visible;
+				   }
+				   
+				   break;
 				}
 						   
-			   if ((z==0)&&(VolumeSegment_2D->size()!=0)) VolumeSegment_2D->at(e->RowIndex).visible = 
-				   Segments_2D[z].at(e->RowIndex).tmpVisible;
+			   
 			  }
 					
 			 }
@@ -3729,8 +3789,43 @@ private: System::Void DataGridView_Clusters_CellEndEdit(System::Object^  sender,
 			  Segments_2D[z].at(index).Color.A = (float)tmp_value/255;
 			  Segments_2D[z].at(index).tmpColor.A = Segments_2D[z].at(index).Color.A;
 
-			  if ((z==0)&&(VolumeSegment_2D->size()!=0)) VolumeSegment_2D->at(index).color = 
-					Segments_2D[z].at(index).Color;
+			  if (VolumeSegment_2D->size()!=0)
+				{
+					size_t layer_root = z, segment_root = index;
+
+					for (size_t LayerIndex = 0; LayerIndex < InputData->sizeZ; ++LayerIndex)
+					for (size_t i = 0; i < paths[LayerIndex].size(); ++i)
+					{
+						for (size_t j = 1; j <= paths[LayerIndex].at(i).backward.size(); ++j)
+							if ((j == abs((int)(z-LayerIndex)))&&
+								(paths[LayerIndex].at(i).backward.at(j-1) == index))
+							{
+								layer_root = LayerIndex;
+								segment_root = paths[LayerIndex].at(i).root;
+								break; break; break;
+							}
+							if (layer_root == z)
+						for (size_t j = 1; j <= paths[LayerIndex].at(i).forward.size(); ++j)
+						{
+							if ((j == abs((int)(LayerIndex-z)))&&
+								(paths[LayerIndex].at(i).forward.at(j-1) == index))
+							{
+								layer_root = LayerIndex;
+								segment_root = paths[LayerIndex].at(i).root;
+								break; break; break;
+							}
+						} else {break; break;}
+					}
+
+					for (size_t k = 0; k < VolumeSegment_2D->size(); ++k)
+					if ((VolumeSegment_2D->at(k).LayerRoot == layer_root)&&
+						(VolumeSegment_2D->at(k).SegmentRoot == segment_root))
+
+ 					{
+						VolumeSegment_2D->at(k).color = Segments_2D[z].at(index).Color;
+						break;
+					}
+				}
 		   
 			  if (CheckBox_ColorsExport->Checked)
 			  {
@@ -3744,24 +3839,19 @@ private: System::Void DataGridView_Clusters_CellEndEdit(System::Object^  sender,
 				{
 					Segments_2D[z+k].at(paths[z].at(i).forward.at(k-1)).tmpColor.A = (float)tmp_value/255;
 				}
-				break;
+		
+			    break;
 			   }
-
-			   if ((z==0)&&(VolumeSegment_2D->size()!=0)) VolumeSegment_2D->at(index).color = 
-				   Segments_2D[z].at(index).tmpColor;
 			  }
-			  
-			  
 			 }
 
-			  if (this->RadioButton_3D->Checked)
-			  {
-			   Segments_3D->at(index).Color.A = (float)tmp_value/255;
-			   if (VolumeSegment_3D->size()!=0) VolumeSegment_3D->at(index).color = Segments_3D->at(index).Color;
-			  }
+			 if (this->RadioButton_3D->Checked)
+			 {
+			  Segments_3D->at(index).Color.A = (float)tmp_value/255;
+			  if (VolumeSegment_3D->size()!=0) VolumeSegment_3D->at(index).color = Segments_3D->at(index).Color;
+			 }
 
-			  GenerateTextures();
-			  
+			 GenerateTextures();
 			}
 		 }
 private: System::Void TextBox_LowBorder_TextChanged(System::Object^  sender, System::EventArgs^  e) {
@@ -4832,7 +4922,9 @@ private: System::Void ButtonReconstructionSegments_2D_Click(System::Object^  sen
 		    VolumeSegment_2D->at(count).object = ballPivot(InputData, paths, z, i, MeshStep_X, MeshStep_Y, MeshStep_Z, MinVoxelDensity, MaxVoxelDensity);
 		    VolumeSegment_2D->at(count).object.buildMesh();
 			VolumeSegment_2D->at(count).color = Segments_2D[z].at(paths[z].at(i).root).Color;
-		    VolumeSegment_2D->at(count).visible = Segments_2D[0].at(paths[z].at(i).root).Visible;
+		    VolumeSegment_2D->at(count).visible = Segments_2D[z].at(paths[z].at(i).root).Visible;
+			VolumeSegment_2D->at(count).LayerRoot = z;
+			VolumeSegment_2D->at(count).SegmentRoot = i;
 		   }
 		   clock_t finish = clock();
 		   this->Label_Status->Text = L"2D-сегменты реконструированы. Общее время реконструкции: " + ((finish-start)/(1.0f*CLOCKS_PER_SEC)).ToString() + L" c.";

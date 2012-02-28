@@ -120,6 +120,9 @@ struct TVolumeSegment			// объёмный реконструируемый сегмент
  TColor color;					// цвет сегмента
  bool visible;					// атрибут видимости
 
+ size_t LayerRoot;
+ size_t SegmentRoot;
+
  // Конструктор по умолчанию
  TVolumeSegment() { object = ballPivot(); }
 };
