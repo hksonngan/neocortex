@@ -152,7 +152,7 @@ c_edge::c_edge(int p1, int p2, int add_p, const c_point &center)	//They are numb
 	
 	if(p1 > p2)			//Point with smaller number is a first point
 	{
-		swap<int>(p1, p2);
+		swap(p1, p2);
 	}
 		
 	f_p=p1;

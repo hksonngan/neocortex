@@ -74,59 +74,76 @@ Vec4f GetMeanDensityCoords_3D(TVoxelsData* Data, vector <size_t> Segment)
 	return (1.0f/Segment.size())*result;
 }
 
-Point_<short> MinMaxDensityOfSegment_2D(TVoxelsData* Data, size_t LayerIndex, int SegmentIndex)
+Point_<short> MinMaxDensityOfSegment_2D(TVoxelsData* Data, size_t LayerIndex, int SegmentIndex, int SegmentType)
 {
  short result_min = Data->MaxDensity, result_max = Data->MinDensity;
 			  
  for (size_t i = 0; i < Data->sizeX*Data->sizeY; ++i)
- if (Data->VoxelSegments[i+LayerIndex*Data->sizeX*Data->sizeY].SegmentIndex_2D == SegmentIndex)
  {
-	result_min = min<short>(Data->Density[i+LayerIndex*Data->sizeX*Data->sizeY], result_min);
-	result_max = max<short>(Data->Density[i+LayerIndex*Data->sizeX*Data->sizeY], result_max);
+  bool value = SegmentType == SPATIAL ? (Data->VoxelSegments[i+LayerIndex*Data->sizeX*Data->sizeY].SpatialSegmentIndex_2D == SegmentIndex) :
+									    (Data->VoxelSegments[i+LayerIndex*Data->sizeX*Data->sizeY].SegmentIndex_2D == SegmentIndex);
+  if (value)
+  {
+	 result_min = min<short>(Data->Density[i+LayerIndex*Data->sizeX*Data->sizeY], result_min);
+	 result_max = max<short>(Data->Density[i+LayerIndex*Data->sizeX*Data->sizeY], result_max);
+  }
  }
  
  return Point_<short>(result_min, result_max);
 }
 
-Point_<short> MinMaxDensityOfSegment_3D(TVoxelsData* Data, size_t StartLayerIndex, int SegmentIndex)
+Point_<short> MinMaxDensityOfSegment_3D(TVoxelsData* Data, size_t StartLayerIndex, int SegmentIndex, int SegmentType)
 {
  short result_min = Data->MaxDensity, result_max = Data->MinDensity; 
 
  for (size_t i = 0; i < Data->TotalSize - StartLayerIndex*Data->sizeX*Data->sizeY; ++i)
- if (Data->VoxelSegments[i+StartLayerIndex*Data->sizeX*Data->sizeY].SegmentIndex_3D == SegmentIndex)
  {
+  bool value = SegmentType == SPATIAL ? (Data->VoxelSegments[i+StartLayerIndex*Data->sizeX*Data->sizeY].SpatialSegmentIndex_3D == SegmentIndex) :
+									    (Data->VoxelSegments[i+StartLayerIndex*Data->sizeX*Data->sizeY].SegmentIndex_3D == SegmentIndex);
+  if (value)
+  {
 	 result_min = min<short>(Data->Density[i+StartLayerIndex*Data->sizeX*Data->sizeY], result_min);
 	 result_max = max<short>(Data->Density[i+StartLayerIndex*Data->sizeX*Data->sizeY], result_max);
+  }
  }
  
  return Point_<short>(result_min, result_max);
 }
 
-Point2f DensityMeanDevOfSegment_2D(TVoxelsData* Data, size_t LayerIndex, int SegmentIndex)
+Point2f DensityMeanDevOfSegment_2D(TVoxelsData* Data, size_t LayerIndex, int SegmentIndex, int SegmentType)
 {
 	float sqr = 0.0f, mean = 0.0f; int N = 0;
 	for (size_t i = 0; i < Data->sizeX*Data->sizeY; ++i)
-	if (Data->VoxelSegments[i+LayerIndex*Data->sizeX*Data->sizeY].SegmentIndex_2D == SegmentIndex)
 	{
-	   short density = Data->Density[i+LayerIndex*Data->sizeX*Data->sizeY];
-	   sqr += density*density; mean += density;
-	   N++;
+		bool value = SegmentType == SPATIAL ? (Data->VoxelSegments[i+LayerIndex*Data->sizeX*Data->sizeY].SpatialSegmentIndex_2D == SegmentIndex) :
+											  (Data->VoxelSegments[i+LayerIndex*Data->sizeX*Data->sizeY].SegmentIndex_2D == SegmentIndex);
+		if (value)
+		{
+		   short density = Data->Density[i+LayerIndex*Data->sizeX*Data->sizeY];
+		   sqr += density*density; mean += density;
+		   N++;
+		}
 	}
 	
 	return Point2f(mean/N, sqrt(sqr/N-(mean/N)*(mean/N)));
 }
 
-Vec4f MeanDevXYOfSegment_2D(TVoxelsData* Data, size_t LayerIndex, int SegmentIndex)
+Vec4f MeanDevXYOfSegment_2D(TVoxelsData* Data, size_t LayerIndex, int SegmentIndex, int SegmentType)
 {
 	float sqr_x = 0.0f, sqr_y = 0.0f, mean_x = 0.0f, mean_y = 0.0f; int N = 0;
 
 	for (size_t i = 0; i < Data->sizeX; ++i)
 	for (size_t j = 0; j < Data->sizeY; ++j)
-	if (Data->VoxelSegments[Data->ReducedIndex(i, j, LayerIndex)].SegmentIndex_2D == SegmentIndex)
 	{
-	   sqr_x += i*i; sqr_y += j*j;
-	   mean_x += i; mean_y += j; 
-	   N++;
+		bool value = SegmentType == SPATIAL ? (Data->VoxelSegments[Data->ReducedIndex(i, j, LayerIndex)].SpatialSegmentIndex_2D == SegmentIndex) :
+											  (Data->VoxelSegments[Data->ReducedIndex(i, j, LayerIndex)].SegmentIndex_2D == SegmentIndex);
+			
+		if (value)
+		{
+		   sqr_x += i*i; sqr_y += j*j;
+		   mean_x += i; mean_y += j; 
+		   N++;
+		}
 	}
 	
 	return Vec4f(mean_x/N, mean_y/N, sqrt(sqr_x/N-(mean_x/N)*(mean_x/N)), sqrt(sqr_y/N-(mean_y/N)*(mean_y/N)));
@@ -147,7 +164,7 @@ void SegmentsSort(const TVoxelsData* Data, vector <TSegment>& Segments, size_t L
 
 		if (i<=j)
 		{
-			swap <TSegment> (Segments.at(i), Segments.at(j));
+			swap(Segments.at(i), Segments.at(j));
 			for (size_t index = 0; index < Data->TotalSize/Data->sizeZ; ++index)
 			{
 				size_t reduced_index = index+LayerIndex*Data->sizeX*Data->sizeY;
