@@ -175,7 +175,7 @@ void TVoxelsData::CalcXYVariance()
 	XVariance = sqr_x - mean_x*mean_x, YVariance = sqr_y - mean_y*mean_y;
 }
 
-void TVoxelsData::FindConnectedRegions(size_t LayerIndex, int SegmentIndex)
+int TVoxelsData::FindConnectedRegions(size_t LayerIndex, int SegmentIndex, int SegmentType)
 {
 	int Label = -1;
 
@@ -212,33 +212,33 @@ void TVoxelsData::FindConnectedRegions(size_t LayerIndex, int SegmentIndex)
 					VoxelSegments[ReducedIndex(i, j, LayerIndex)].ComponentIndex_2D = (++Label);
 				}
 			}
+	return Label+1; 
 }
 
 #pragma endregion
 
 #pragma region TSegment methods
 
-double TSegment::DistanceTo(const TSegment &segment)
+double TSegment::DistanceTo(const TSegment &segment, const bool* flags)
 {
 	cv::Mat l(7, 1, CV_32FC1), r(7, 1, CV_32FC1);
 
-	l.at<float>(0, 0) = Volume; 
-	l.at<float>(1, 0) = MeanX; l.at<float>(2, 0) = MeanY; 
-	l.at<float>(3, 0) = DevX; l.at<float>(4, 0) = DevY; 
-	l.at<float>(5, 0) = MeanDensity; l.at<float>(6, 0) = DensityDev;
+	l.at<float>(0, 0) = flags[6] ? Volume : 0; 
+	l.at<float>(1, 0) = flags[3] ? MeanX : 0; l.at<float>(2, 0) = flags[3] ? MeanY : 0; 
+	l.at<float>(3, 0) = flags[4] ? DevX : 0; l.at<float>(4, 0) = flags[5] ? DevY : 0; 
+	l.at<float>(5, 0) = flags[1] ? MeanDensity : 0; l.at<float>(6, 0) = flags[2] ? DensityDev : 0;
 
-	r.at<float>(0, 0) = segment.Volume; 
-	r.at<float>(1, 0) = segment.MeanX; r.at<float>(2, 0) = segment.MeanY; 
-	r.at<float>(3, 0) = segment.DevX; r.at<float>(4, 0) = segment.DevY; 
-	r.at<float>(5, 0) = segment.MeanDensity; r.at<float>(6, 0) = segment.DensityDev;
-
+	r.at<float>(0, 0) = flags[6] ? Volume : 0; 
+	r.at<float>(1, 0) = flags[3] ? MeanX : 0; r.at<float>(2, 0) = flags[3] ? MeanY : 0; 
+	r.at<float>(3, 0) = flags[4] ? DevX : 0; r.at<float>(4, 0) = flags[5] ? DevY : 0; 
+	r.at<float>(5, 0) = flags[1] ? MeanDensity : 0; r.at<float>(6, 0) = flags[2] ? DensityDev : 0;
+	
 	return cv::norm(l, r);
 }
 
 bool TSegment::IsAdjacentWith(const TSegment &segment)
 {
-	return ((MinDensity >= segment.MinDensity)&&(MinDensity <= segment.MaxDensity))||
-		((MaxDensity >= segment.MinDensity)&&(MaxDensity <= segment.MaxDensity));
+	return min(MaxDensity, segment.MaxDensity) >= max(MinDensity, segment.MinDensity);
 }
 
 #pragma endregion

@@ -33,11 +33,14 @@ struct TLayer  // слой данных (двумерное изображение)
 
 struct TVoxelSegments					
 {
- int SegmentIndex_2D, SegmentIndex_3D;  // индексы сегментов, которым принадлежит воксел
- int ComponentIndex_2D;					// индекс компоненты связности, входящей в сегмент, которому принадлежит воксел
+ int SegmentIndex_2D, SegmentIndex_3D;					// индексы сегментов, которым принадлежит воксел
+ int SpatialSegmentIndex_2D, SpatialSegmentIndex_3D;	// индексы пространственных кластеров, которым принадлежит воксел
+ int ComponentIndex_2D;									// индекс компоненты связности, входящей в сегмент, которому принадлежит воксел
 
  // Конструктор по умолчанию
- TVoxelSegments(): SegmentIndex_2D(-1), SegmentIndex_3D(-1), ComponentIndex_2D(-1) {}
+ TVoxelSegments(): SegmentIndex_2D(-1), SegmentIndex_3D(-1), 
+				   SpatialSegmentIndex_2D(-1), SpatialSegmentIndex_3D(-1),
+				   ComponentIndex_2D(-1) {}
 };
 
 struct TColor 
@@ -108,7 +111,7 @@ class TVoxelsData
 		void CalcXYVariance();
 
 		// Поиск связных областей
-		void FindConnectedRegions(size_t LayerIndex, int SegmentIndex);
+		int FindConnectedRegions(size_t LayerIndex, int SegmentIndex, int SegmentType);
 };
 
 struct TSegment					// сегмент из вокселов
@@ -130,14 +133,26 @@ struct TSegment					// сегмент из вокселов
  float DensityDev;				// разброс вокселов сегмента по плотности
  float Volume;					// объём сегмента (с учётом размеров воксела вдоль осей)
 
+ std::vector <TSegment>* NextLevelSegments;	// сегменты следующего уровня иерархии
+ 
  // Конструктор сегмента по умолчанию
- TSegment(): MinDensity(0), MaxDensity(0), Histogram(0), 
+ TSegment(): MinDensity(0), MaxDensity(0), Histogram(0), NextLevelSegments(0),
 	         Color(TColor(0.0f, 0.0f, 0.0f, 0.0f)), Visible(false), 
 			 tmpColor(TColor(0.0f, 0.0f, 0.0f, 0.0f)), tmpVisible(false) {}
 
- double DistanceTo(const TSegment &segment);
+ double DistanceTo(const TSegment &segment, const bool* flags = NULL);
 
  bool IsAdjacentWith(const TSegment &segment);
+};
+
+struct TSegmentParent			// атрибуты корневого сегмента в цепочке соответствий
+{
+	size_t LayerRoot;			// индекс слоя
+	size_t SegmentRoot;			// индекс сегмента
+
+	// Конструкторы
+	TSegmentParent() : LayerRoot(0), SegmentRoot(0) {}
+	TSegmentParent(size_t layer_index, size_t segment_index) : LayerRoot(layer_index), SegmentRoot(segment_index) {}
 };
 
 struct TSegmentComponent	// компонента связности сегментов
