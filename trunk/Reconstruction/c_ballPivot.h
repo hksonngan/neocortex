@@ -373,13 +373,17 @@ void ballPivot::searchOfObjects(c_point* points, int len, int radius, list<c_obj
 	for(list<c_object>::iterator iter=objects.begin(); iter!=objects.end(); iter++)
 	{
 		iter->ready();
-		if(ifIterWasFirst){iter--; ifIterWasFirst=false;}
+		if(ifIterWasFirst)
+		{
+			iter--; ifIterWasFirst=false;
+		}
 		if(iter->getEdge().getFP()==-1)
 		{
 			if(iter==objects.begin()) ifIterWasFirst=true;
 			objects.erase(iter);
 			if(ifIterWasFirst)iter=objects.begin();
 			else iter=last;
+			if(iter==objects.end()) break;
 		}
 		else
 		{
@@ -625,7 +629,16 @@ bool ballPivot::if_edge_is_full(c_edge &edge, bool update=false)
 	if(iter!=all_edges.end())
 	{
 		edge_already_exist=true;
-		if(update) iter->update(edge);
+		if(update) 
+		{
+			//iter->update(edge);
+			c_edge tmp_edge;
+			tmp_edge=(*iter);
+			tmp_edge.update(edge);
+			all_edges.erase(iter);
+			all_edges.insert(tmp_edge);
+			iter=all_edges.find(edge);
+		}
 		if(iter->is_lp_exists && iter->is_rp_exists)
 			edge_is_full=true;
 	}
