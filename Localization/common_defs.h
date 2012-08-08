@@ -5,11 +5,11 @@
 #include <math.h>
 #include <float.h>
 #include <typeinfo>
-#include "GLee/GLee.h"
+#include "GLee.h"
 #include <GL/gl.h>
-#include <Base Render Library\Keyboard.h>
-#include <Base Render Library\Mouse.h>
-#include <Base Render Library\FrameBuffer.h>
+#include <Keyboard.h>
+#include <Mouse.h>
+#include <FrameBuffer.h>
 
 #pragma comment(lib,"opengl32.lib")
 #pragma comment(lib,"glut32.lib") 

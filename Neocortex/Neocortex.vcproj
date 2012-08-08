@@ -42,7 +42,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\Common\;..\Localization\;..\Segmentation\;..\Reconstruction\;..\Common\OpenCV\build\include\;..\Common\GLFW\Include"
+				AdditionalIncludeDirectories="..\Common\;..\Localization\;..\Segmentation\;..\Reconstruction\;..\Common\OpenCV\build\include\;..\Common\GLFW\Include;&quot;..\Common\Base Math Library\Include&quot;;&quot;..\Common\Base Render Library\Include&quot;;..\Common\GLee\Include"
 				PreprocessorDefinitions="WIN32;_DEBUG"
 				RuntimeLibrary="3"
 				UsePrecompiledHeader="0"
@@ -60,9 +60,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="OpenCL.lib opencv_core231d.lib opencv_highgui231d.lib opencv_imgproc231d.lib opencv_video231d.lib opencv_ml231d.lib opencv_legacy231d.lib opencv_objdetect231d.lib opengl32.lib glut32.lib glu32.lib glaux.lib glfw.lib"
+				AdditionalDependencies="OpenCL.lib opencv_core231d.lib opencv_highgui231d.lib opencv_imgproc231d.lib opencv_video231d.lib opencv_ml231d.lib opencv_legacy231d.lib opencv_objdetect231d.lib opengl32.lib glut32.lib glu32.lib glaux.lib glfw.lib &quot;Base Math Library.lib&quot; &quot;Base Render Library.lib&quot; GLee.lib"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="..\Common\;..\Common\OpenCV\build\x86\vc9\lib;..\Common\GLFW\Lib"
+				AdditionalLibraryDirectories="..\Common\;..\Common\OpenCV\build\x86\vc9\lib;..\Common\GLFW\Lib;&quot;..\Common\Base Math Library\Lib\Debug&quot;;&quot;..\Common\Base Render Library\Lib\Debug&quot;;..\Common\GLee\Lib\Debug"
 				IgnoreDefaultLibraryNames="libc.lib"
 				GenerateDebugInformation="true"
 				AssemblyDebug="1"
@@ -90,6 +90,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
+				CommandLine="copy &quot;$(SolutionDir)\DLL\glut32.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy &quot;$(SolutionDir)\DLL\OpenCL.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy &quot;$(SolutionDir)\DLL\Qt\Debug\QtCored4.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy &quot;$(SolutionDir)\DLL\Qt\Debug\QtGuid4.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy &quot;$(SolutionDir)\DLL\Qt\Debug\QtTestd4.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy &quot;$(SolutionDir)\DLL\opencv\Debug\opencv_calib3d231d.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy &quot;$(SolutionDir)\DLL\opencv\Debug\opencv_core231d.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy &quot;$(SolutionDir)\DLL\opencv\Debug\opencv_flann231d.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy &quot;$(SolutionDir)\DLL\opencv\Debug\opencv_highgui231d.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy &quot;$(SolutionDir)\DLL\opencv\Debug\opencv_imgproc231d.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy &quot;$(SolutionDir)\DLL\opencv\Debug\opencv_objdetect231d.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy &quot;$(SolutionDir)DLL\opencv\Debug\opencv_features2d231d.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;mkdir &quot;$(TargetDir)shader_snake&quot;&#x0D;&#x0A;copy &quot;$(ProjectDir)shader_snake&quot; &quot;$(TargetDir)shader_snake\&quot;&#x0D;&#x0A;"
 			/>
 		</Configuration>
 		<Configuration
@@ -118,7 +119,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="..\Common\;..\Localization\;..\Segmentation\;..\Reconstruction\;..\Common\OpenCV\build\include\;..\Common\GLFW\Include"
+				AdditionalIncludeDirectories="..\Common\;..\Localization\;..\Segmentation\;..\Reconstruction\;..\Common\OpenCV\build\include\;..\Common\GLFW\Include;&quot;..\Common\Base Math Library\Include&quot;;&quot;..\Common\Base Render Library\Include&quot;;..\Common\GLee\Include"
 				PreprocessorDefinitions="WIN32;NDEBUG"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
@@ -136,9 +137,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="OpenCL.lib opencv_core231.lib opencv_highgui231.lib opencv_imgproc231.lib opencv_video231.lib opencv_ml231.lib opencv_legacy231.lib opencv_objdetect231.lib opengl32.lib glut32.lib glu32.lib glaux.lib glfw.lib"
+				AdditionalDependencies="OpenCL.lib opencv_core231.lib opencv_highgui231.lib opencv_imgproc231.lib opencv_video231.lib opencv_ml231.lib opencv_legacy231.lib opencv_objdetect231.lib opengl32.lib glut32.lib glu32.lib glaux.lib glfw.lib &quot;Base Math Library.lib&quot; &quot;Base Render Library.lib&quot; GLee.lib"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="..\Common\;..\Common\OpenCV\build\x86\vc9\lib;..\Common\GLFW\Lib"
+				AdditionalLibraryDirectories="..\Common\;..\Common\OpenCV\build\x86\vc9\lib;..\Common\GLFW\Lib;&quot;..\Common\Base Math Library\Lib\Release&quot;;&quot;..\Common\Base Render Library\Lib\Release&quot;;..\Common\GLee\Lib\Release"
 				IgnoreDefaultLibraryNames="libc.lib"
 				GenerateDebugInformation="true"
 				SubSystem="2"
@@ -165,6 +166,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
+				CommandLine="copy &quot;$(SolutionDir)DLL\glut32.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy &quot;$(SolutionDir)DLL\OpenCL.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy &quot;$(SolutionDir)DLL\Qt\Release\QtCore4.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy &quot;$(SolutionDir)DLL\Qt\Release\QtGui4.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy &quot;$(SolutionDir)DLL\Qt\Release\QtTest4.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy &quot;$(SolutionDir)DLL\opencv\Release\opencv_calib3d231.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy &quot;$(SolutionDir)DLL\opencv\Release\opencv_core231.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy &quot;$(SolutionDir)DLL\opencv\Release\opencv_flann231.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy &quot;$(SolutionDir)DLL\opencv\Release\opencv_highgui231.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy &quot;$(SolutionDir)DLL\opencv\Release\opencv_imgproc231.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy &quot;$(SolutionDir)DLL\opencv\Release\opencv_objdetect231.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy &quot;$(SolutionDir)DLL\opencv\Release\opencv_features2d231.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;mkdir &quot;$(TargetDir)shader_snake&quot;&#x0D;&#x0A;copy &quot;$(ProjectDir)shader_snake&quot; &quot;$(TargetDir)shader_snake\&quot;"
 			/>
 		</Configuration>
 	</Configurations>
@@ -252,106 +254,6 @@
 					RelativePath="..\Common\Structures.cpp"
 					>
 				</File>
-				<Filter
-					Name="Base Math Library"
-					>
-					<File
-						RelativePath="..\Common\Base Math Library\Matrix2D.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\Base Math Library\Matrix3D.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\Base Math Library\Matrix4D.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\Base Math Library\Util.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\Base Math Library\Vector2D.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\Base Math Library\Vector3D.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\Base Math Library\Vector4D.cpp"
-						>
-					</File>
-				</Filter>
-				<Filter
-					Name="Base Render Library"
-					>
-					<File
-						RelativePath="..\Common\Base Render Library\Camera.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\Base Render Library\FilterMode.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\Base Render Library\FrameBuffer.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\Base Render Library\Keyboard.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\Base Render Library\Mouse.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\Base Render Library\RenderBuffer.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\Base Render Library\ShaderManager.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\Base Render Library\Texture1D.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\Base Render Library\Texture2D.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\Base Render Library\Texture3D.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\Base Render Library\TextureData1D.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\Base Render Library\TextureData2D.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\Base Render Library\TextureData3D.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\Base Render Library\WrapMode.cpp"
-						>
-					</File>
-				</Filter>
-				<Filter
-					Name="GLee"
-					>
-					<File
-						RelativePath="..\Common\GLee\GLee.cpp"
-						>
-					</File>
-				</Filter>
 				<Filter
 					Name="SDL"
 					>
@@ -501,106 +403,6 @@
 					RelativePath="..\Common\Structures.h"
 					>
 				</File>
-				<Filter
-					Name="Base Math Library"
-					>
-					<File
-						RelativePath="..\Common\Base Math Library\Matrix2D.h"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\Base Math Library\Matrix3D.h"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\Base Math Library\Matrix4D.h"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\Base Math Library\Util.h"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\Base Math Library\Vector2D.h"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\Base Math Library\Vector3D.h"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\Base Math Library\Vector4d.h"
-						>
-					</File>
-				</Filter>
-				<Filter
-					Name="Base Render Library"
-					>
-					<File
-						RelativePath="..\Common\BaseRenderLibrary\Camera.h"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\BaseRenderLibrary\FilterMode.h"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\BaseRenderLibrary\FrameBuffer.h"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\BaseRenderLibrary\Keyboard.h"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\BaseRenderLibrary\Mouse.h"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\BaseRenderLibrary\RenderBuffer.h"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\BaseRenderLibrary\ShaderManager.h"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\BaseRenderLibrary\Texture1D.h"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\BaseRenderLibrary\Texture2D.h"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\BaseRenderLibrary\Texture3D.h"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\BaseRenderLibrary\TextureData1D.h"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\BaseRenderLibrary\TextureData2D.h"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\BaseRenderLibrary\TextureData3D.h"
-						>
-					</File>
-					<File
-						RelativePath="..\Common\BaseRenderLibrary\WrapMode.h"
-						>
-					</File>
-				</Filter>
-				<Filter
-					Name="GLee"
-					>
-					<File
-						RelativePath="..\Common\GLee\GLee.h"
-						>
-					</File>
-				</Filter>
 				<Filter
 					Name="SDL"
 					>
