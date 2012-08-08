@@ -2,7 +2,7 @@
 
 #include <fstream>
 
-#include "GLee/GLee.h"
+#include "GLee.h"
 #include "Graphics.h"
 #include "Structures.h"
 #include "Methods.h"
