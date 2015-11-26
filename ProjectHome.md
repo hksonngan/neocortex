@@ -1,0 +1,1 @@
+The project is mainly aimed to 3d-reconstruction of various human organs based on high-resolution medical  imagery
